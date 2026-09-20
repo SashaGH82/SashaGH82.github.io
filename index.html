@@ -219,12 +219,11 @@
             onSuccess: onConnect,
             onFailure: function (message) {
                 console.log("Помилка підключення: " + message.errorMessage);
-                setTimeout(connectMQTT, 5000); // Реконект через 5 сек
-            }
-            // Якщо потрібна авторизація для HiveMQ Cloud, розкоментуй та заповни:
-            useSSL: true,
-            userName: "Sasha_HMQ",
-            password: "dZBd1^&b8n"
+                setTimeout(connectMQTT, 5000); 
+            }, // <-- ОБОВ'ЯЗКОВО МАЄ БУТИ КОМА СУДЬ
+            useSSL: true // Увімкнення безпечного підключення
+            userName: "Sasha_HMQ",    // Твій логін (з розділу Access Management)
+            password: "dZBd1^&b8n"    // Твій пароль
         };
 
         function connectMQTT() {
