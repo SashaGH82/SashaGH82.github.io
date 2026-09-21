@@ -292,7 +292,34 @@
                 document.getElementById("val-soc").innerText = data.soc;
                 document.getElementById("bar-soc").style.width = data.soc + "%";
             }
-            if(data.voltage !== undefined) document.getElementById("val-voltage").innerText = data.voltage.toFixed(1);
+            if (
+    data.voltage !== undefined &&
+    Number.isFinite(Number(data.voltage))
+) {
+    const voltage = Number(data.voltage);
+
+    document.getElementById("val-voltage").innerText =
+        voltage.toFixed(2);
+
+    if (voltageMin === null) {
+        voltageMin = voltage;
+        voltageMax = voltage;
+    } else {
+        if (voltage < voltageMin) {
+            voltageMin = voltage;
+        }
+
+        if (voltage > voltageMax) {
+            voltageMax = voltage;
+        }
+    }
+
+    document.getElementById("min-voltage").innerText =
+        voltageMin.toFixed(2);
+
+    document.getElementById("max-voltage").innerText =
+        voltageMax.toFixed(2);
+}
             if(data.power !== undefined) document.getElementById("val-power").innerText = data.power.toFixed(1);
             if(data.current !== undefined) {
                 document.getElementById("val-current-full").innerText = data.current.toFixed(2) + " A";
