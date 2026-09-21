@@ -34,7 +34,7 @@
     <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between border-b border-cardborder pb-4 gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white tracking-wide">BMS Monitor</h1>
-            <p class="text-sm text-zinc-400">Система моніторингу акумуляторного блоку (16S LiFePO4)</p>
+            <p class="text-sm text-zinc-400">Система моніторингу акумуляторного блоку (4S LiFePO4)</p>
         </div>
         <div class="flex items-center gap-3">
             <span id="mqtt-status" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600">
@@ -69,8 +69,8 @@
                     <span class="text-3xl font-extrabold text-white"><span id="val-voltage">0.0</span> <span class="text-lg text-turquoise-400 font-normal">V</span></span>
                 </div>
                 <div class="text-xs text-zinc-400 mt-4 flex justify-between">
-                    <span>Мін: 48.0V</span>
-                    <span>Макс: 56.8V</span>
+                    <span>Мін: <span id="min-voltage">—</span> V</span>
+                    <span>Макс: <span id="max-voltage">—</span> V</span>
                 </div>
             </div>
 
@@ -103,7 +103,7 @@
         <div class="bg-cardbg border border-cardborder rounded-xl p-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Напруга комірок (16S)</h2>
+                    <h2 class="text-lg font-bold text-white">Напруга комірок (4S)</h2>
                     <p class="text-xs text-zinc-400">Різниця напруг (Delta): <span class="text-turquoise-400 font-mono" id="val-delta">0.000 V</span></p>
                 </div>
                 <div class="flex gap-4 text-xs">
