@@ -1,613 +1,380 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Power Flow Dashboard</title>
-<style>
-:root{
-  --teal:#19b8b0;
-  --teal-dark:#087d79;
-  --cyan:#2aa9e0;
-  --green:#27c97b;
-  --yellow:#f3bd3b;
-  --red:#f05d62;
-  --bg:#081315;
-  --panel:#102125;
-  --panel2:#132b30;
-  --text:#eaf8f7;
-  --muted:#8fb0b2;
-  --line:rgba(25,184,176,.22);
-  --white:#fff;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Inter,Segoe UI,Arial,sans-serif;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(25,184,176,.10), transparent 30%),
-    radial-gradient(circle at 90% 20%, rgba(42,169,224,.08), transparent 28%),
-    var(--bg);
-  color:var(--text);
-}
-.dashboard{
-  width:min(1500px,100%);
-  margin:auto;
-  padding:22px;
-}
-.topbar{
-  display:flex;
-  gap:16px;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:18px;
-}
-.brand h1{margin:0;font-size:25px;letter-spacing:.2px}
-.brand p{margin:5px 0 0;color:var(--muted);font-size:13px}
-.status-pill{
-  display:flex;align-items:center;gap:9px;
-  background:rgba(255,255,255,.04);
-  border:1px solid var(--line);
-  border-radius:999px;
-  padding:9px 13px;
-  font-size:13px;
-}
-.status-dot{
-  width:9px;height:9px;border-radius:50%;
-  background:var(--green);
-  box-shadow:0 0 12px var(--green);
-}
-.status-dot.off{background:var(--red);box-shadow:0 0 12px var(--red)}
-.layout{
-  display:grid;
-  grid-template-columns:minmax(520px,1.05fr) minmax(360px,.95fr);
-  gap:18px;
-}
-.card{
-  background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
-  border:1px solid var(--line);
-  border-radius:20px;
-  box-shadow:0 18px 60px rgba(0,0,0,.22);
-  overflow:hidden;
-}
-.card-pad{padding:16px}
-.scene-card{padding:14px}
-.scene{
-  position:relative;
-  width:100%;
-  max-width:760px;
-  margin:auto;
-  border-radius:16px;
-  overflow:hidden;
-  background:#fff;
-  box-shadow:0 10px 35px rgba(0,0,0,.25);
-}
-.scene img{
-  display:block;width:100%;height:auto;
-  user-select:none;
-}
-.scene svg{
-  position:absolute;inset:0;width:100%;height:100%;
-  pointer-events:none;
-}
-.kpi-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-.kpi{
-  background:rgba(255,255,255,.035);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:16px;
-  padding:13px;
-}
-.kpi .label{font-size:12px;color:var(--muted)}
-.kpi .value{font-size:24px;font-weight:800;margin-top:4px}
-.kpi .sub{font-size:11px;color:#84a7aa;margin-top:3px}
-.kpi.green .value{color:var(--green)}
-.kpi.yellow .value{color:var(--yellow)}
-.kpi.red .value{color:var(--red)}
-.kpi.cyan .value{color:var(--cyan)}
-.section-title{
-  font-size:13px;
-  letter-spacing:.5px;
-  color:#b8d7d8;
-  margin:0 0 10px;
-  text-transform:uppercase;
-}
-.battery-summary{
-  margin-top:12px;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-.progress{
-  height:10px;background:#183136;border-radius:99px;overflow:hidden;
-  border:1px solid rgba(255,255,255,.06)
-}
-.progress > i{
-  display:block;height:100%;width:0%;
-  background:linear-gradient(90deg,var(--teal),var(--cyan));
-  border-radius:99px;transition:width .5s ease;
-}
-.mini-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;
-}
-.chart-box{
-  background:rgba(255,255,255,.025);
-  border:1px solid rgba(255,255,255,.07);
-  border-radius:16px;
-  padding:12px;
-}
-.chart-box canvas{width:100%;height:110px;display:block}
-.history{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-.history-item{
-  padding:14px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.07);
-  background:rgba(255,255,255,.025);
-}
-.history-value{
-  font-size:25px;font-weight:800;margin-top:3px
-}
-.history-item small{color:var(--muted)}
-.bar{
-  margin-top:10px;height:8px;background:#183136;border-radius:99px;overflow:hidden
-}
-.bar i{display:block;height:100%;width:0;transition:width .5s}
-.bar.grid i{background:var(--green)}
-.bar.batt i{background:var(--yellow)}
-.controls{
-  display:flex;flex-wrap:wrap;gap:8px;margin-top:12px
-}
-button{
-  border:1px solid rgba(255,255,255,.09);
-  background:#13292d;color:#dff8f7;
-  border-radius:11px;padding:9px 12px;cursor:pointer
-}
-button:hover{background:#18343a}
-.footer-note{
-  margin-top:13px;color:#6f8f92;font-size:11px;line-height:1.45
-}
-.badge{
-  display:inline-flex;align-items:center;gap:6px;
-  border:1px solid rgba(25,184,176,.22);
-  border-radius:999px;padding:6px 9px;
-  font-size:11px;background:rgba(25,184,176,.07);
-}
-.legend{
-  display:flex;flex-wrap:wrap;gap:8px;margin-top:10px
-}
-.legend span{font-size:11px;color:#9cb8ba}
-.legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
-.dot-grid{background:var(--green)} .dot-batt{background:var(--yellow)} .dot-flow{background:var(--cyan)}
-@media(max-width:980px){
-  .layout{grid-template-columns:1fr}
-}
-@media(max-width:650px){
-  .dashboard{padding:10px}
-  .kpi-grid,.history,.mini-grid,.battery-summary{grid-template-columns:1fr}
-  .topbar{align-items:flex-start;flex-direction:column}
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMS Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#121316',
+                        cardbg: '#1c1e24',
+                        cardborder: '#2a2d35',
+                        turquoise: {
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Використовуємо надійний CDN jsDelivr -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
 </head>
-<body>
-<div class="dashboard">
-  <div class="topbar">
-    <div class="brand">
-      <h1>⚡ Power Flow</h1>
-      <p>Інвертор · LiFePO4 · будинок · електромережа</p>
-    </div>
-    <div class="status-pill">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="systemStatus">Очікування даних</span>
-    </div>
-  </div>
+<body class="bg-darkbg text-zinc-200 font-sans min-h-screen p-4 md:p-8">
 
-  <div class="layout">
-    <div class="card scene-card">
-      <div class="scene" id="scene">
-        <img src="power-flow.jpg" alt="Схема електроживлення">
-        <svg viewBox="0 0 753 1177" preserveAspectRatio="none">
-          <defs>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="5" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
+    <!-- Верхня панель -->
+    <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between border-b border-cardborder pb-4 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white tracking-wide">BMS Monitor</h1>
+            <p class="text-sm text-zinc-400">Система моніторингу акумуляторного блоку (4S LiFePO4)</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="mqtt-status" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600">
+                <span class="w-2 h-2 rounded-full bg-zinc-500" id="mqtt-indicator"></span>
+                Очікування з'єднання...
+            </span>
+            <span class="text-xs text-zinc-500" id="last-update">Оновлено: ніколи</span>
+        </div>
+    </header>
 
-          <!-- Основні траси потоку -->
-          <path id="pGrid" d="M216 365 L216 495" stroke="#19b8b0" stroke-width="5" fill="none" opacity=".20"/>
-          <path id="pLoad" d="M216 684 L216 810" stroke="#19b8b0" stroke-width="5" fill="none" opacity=".20"/>
-          <path id="pCharge" d="M293 596 L476 596" stroke="#f3bd3b" stroke-width="5" fill="none" opacity=".20"/>
-          <path id="pDischarge" d="M476 596 L293 596" stroke="#2aa9e0" stroke-width="5" fill="none" opacity=".20"/>
+    <main class="max-w-7xl mx-auto space-y-6">
 
-          <!-- Анімовані крапки -->
-          <circle id="dotGrid" r="7" fill="#27c97b" filter="url(#glow)">
-            <animateMotion dur="1.35s" repeatCount="indefinite" path="M216 365 L216 495"/>
-          </circle>
-          <circle id="dotLoad" r="7" fill="#2aa9e0" filter="url(#glow)">
-            <animateMotion dur="1.05s" repeatCount="indefinite" path="M216 684 L216 810"/>
-          </circle>
-          <circle id="dotCharge" r="7" fill="#f3bd3b" filter="url(#glow)">
-            <animateMotion dur="1.2s" repeatCount="indefinite" path="M293 596 L476 596"/>
-          </circle>
-          <circle id="dotDischarge" r="7" fill="#2aa9e0" filter="url(#glow)">
-            <animateMotion dur="1.2s" repeatCount="indefinite" path="M476 596 L293 596"/>
-          </circle>
+        <!-- Сітка основних показників -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Заряд (SoC) -->
+            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Рівень заряду (SoC)</span>
+                <div class="flex items-baseline justify-between mt-2">
+                    <span class="text-3xl font-extrabold text-white"><span id="val-soc">0</span><span class="text-lg text-turquoise-400 font-normal">%</span></span>
+                    <span class="text-xs text-turquoise-400" id="val-current-label">+0.0 A</span>
+                </div>
+                <div class="w-full bg-zinc-800 h-2.5 rounded-full mt-4 overflow-hidden">
+                    <div id="bar-soc" class="bg-turquoise-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
 
-          <!-- Динамічні показники поверх оригінального зображення -->
-          <g font-family="Segoe UI,Arial,sans-serif" font-weight="800" fill="#1697a0" text-anchor="middle">
-            <rect x="224" y="406" width="106" height="36" rx="7" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtGridVoltage" x="277" y="431" font-size="20">230 В</text>
+            <!-- Напруга -->
+            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Загальна напруга</span>
+                <div class="mt-2">
+                    <span class="text-3xl font-extrabold text-white"><span id="val-voltage">0.0</span> <span class="text-lg text-turquoise-400 font-normal">V</span></span>
+                </div>
+                <div class="text-xs text-zinc-400 mt-4 flex justify-between">
+                    <span>Мін: 48.0V</span>
+                    <span>Макс: 56.8V</span>
+                </div>
+            </div>
 
-            <rect x="226" y="741" width="106" height="36" rx="7" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtLoadVoltage" x="279" y="766" font-size="20">230 В</text>
+            <!-- Струм та Потужність -->
+            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Поточна потужність</span>
+                <div class="mt-2">
+                    <span class="text-3xl font-extrabold text-white"><span id="val-power">0.0</span> <span class="text-lg text-turquoise-400 font-normal">W</span></span>
+                </div>
+                <div class="text-xs text-zinc-400 mt-4">
+                    <span>Струм: </span><span class="text-zinc-200" id="val-current-full">0.00 A</span>
+                </div>
+            </div>
 
-            <rect x="323" y="558" width="112" height="36" rx="7" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtBattVoltage" x="379" y="583" font-size="20">14,5 В</text>
-
-            <rect x="323" y="614" width="92" height="36" rx="7" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtBattCurrent" x="369" y="639" font-size="19">20 А</text>
-
-            <rect x="486" y="470" width="90" height="42" rx="21" fill="#fff" stroke="#2aa9e0" stroke-width="2"/>
-            <text id="txtSoc" x="531" y="498" font-size="20">80 %</text>
-
-            <rect x="571" y="434" width="94" height="36" rx="18" fill="#fff" stroke="#f3bd3b" stroke-width="2"/>
-            <text id="txtTemp" x="618" y="458" font-size="18">32 °C</text>
-
-            <rect x="594" y="414" width="112" height="36" rx="18" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtBattName" x="650" y="438" font-size="13">LiFePO4</text>
-
-            <rect x="521" y="703" width="120" height="38" rx="7" fill="#fff" stroke="#2aa9e0" stroke-width="2"/>
-            <text id="txtLoadPower" x="581" y="729" font-size="20">250 Вт</text>
-
-            <rect x="337" y="474" width="144" height="40" rx="9" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtInvLoad" x="409" y="500" font-size="16">Інвертор 25%</text>
-
-            <rect x="275" y="860" width="138" height="42" rx="21" fill="#fff" stroke="#19b8b0" stroke-width="2"/>
-            <text id="txtRoomTemp" x="344" y="888" font-size="18">22,4 °C</text>
-          </g>
-        </svg>
-      </div>
-
-      <div class="legend">
-        <span><i class="dot-grid"></i>мережа → інвертор</span>
-        <span><i class="dot-flow"></i>інвертор → будинок</span>
-        <span><i class="dot-batt"></i>заряд акумулятора</span>
-        <span><i class="dot-flow"></i>розряд акумулятора</span>
-      </div>
-    </div>
-
-    <div>
-      <div class="card card-pad">
-        <p class="section-title">Поточний стан</p>
-        <div class="kpi-grid">
-          <div class="kpi green">
-            <div class="label">Джерело живлення</div>
-            <div class="value" id="sourceValue">МЕРЕЖА</div>
-            <div class="sub" id="sourceSub">акумулятор заряджається</div>
-          </div>
-          <div class="kpi cyan">
-            <div class="label">Потужність будинку</div>
-            <div class="value"><span id="powerKpi">250</span> W</div>
-            <div class="sub">поточне навантаження</div>
-          </div>
-          <div class="kpi yellow">
-            <div class="label">Заряд акумулятора</div>
-            <div class="value"><span id="socKpi">80</span>%</div>
-            <div class="progress"><i id="socBar"></i></div>
-          </div>
-          <div class="kpi">
-            <div class="label">Інвертор</div>
-            <div class="value"><span id="invKpi">25</span>%</div>
-            <div class="sub">від номіналу</div>
-          </div>
+            <!-- Температура та Здоров'я -->
+            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Температура / SoH</span>
+                <div class="mt-2 flex justify-between items-baseline">
+                    <span class="text-3xl font-extrabold text-white"><span id="val-temp-main">0.0</span> <span class="text-lg text-turquoise-400 font-normal">°C</span></span>
+                    <span class="text-sm font-semibold text-turquoise-400">SoH <span id="val-soh">0</span>%</span>
+                </div>
+                <div class="text-xs text-zinc-400 mt-4 flex justify-between">
+                    <span>Датчик 1: <span id="val-temp1">0.0</span>°C</span>
+                    <span>Датчик 2: <span id="val-temp2">0.0</span>°C</span>
+                </div>
+            </div>
         </div>
 
-        <div class="battery-summary">
-          <div class="kpi">
-            <div class="label">Напруга АКБ</div>
-            <div class="value"><span id="voltageKpi">14.5</span> V</div>
-            <div class="sub">струм <span id="currentKpi">20.0</span> A</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Температура приміщення</div>
-            <div class="value"><span id="roomTempKpi">22.4</span> °C</div>
-            <div class="sub">датчик 1 / кімната</div>
-          </div>
+        <!-- Покомірні напруги (Cell Voltages) -->
+        <div class="bg-cardbg border border-cardborder rounded-xl p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Напруга комірок (4S)</h2>
+                    <p class="text-xs text-zinc-400">Різниця напруг (Delta): <span class="text-turquoise-400 font-mono" id="val-delta">0.000 V</span></p>
+                </div>
+                <div class="flex gap-4 text-xs">
+                    <span class="flex items-center gap-1.5 text-zinc-400">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-turquoise-500"></span> Мін: <span id="val-cell-min">0.000</span>V
+                    </span>
+                    <span class="flex items-center gap-1.5 text-zinc-400">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-teal-300"></span> Макс: <span id="val-cell-max">0.000</span>V
+                    </span>
+                </div>
+            </div>
+
+            <!-- Контейнер для генерації комірок через JS -->
+            <div id="cells-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                <!-- Очікування даних... -->
+                <div class="col-span-full text-center text-zinc-500 text-sm">Очікування даних по комірках...</div>
+            </div>
         </div>
-      </div>
 
-      <div class="card card-pad" style="margin-top:12px">
-        <p class="section-title">Історія живлення</p>
-        <div class="history">
-          <div class="history-item">
-            <small>Електромережа сьогодні</small>
-            <div class="history-value" id="gridTime">0:00:00</div>
-            <div class="bar grid"><i id="gridBar"></i></div>
-          </div>
-          <div class="history-item">
-            <small>Акумулятор сьогодні</small>
-            <div class="history-value" id="batteryTime">0:00:00</div>
-            <div class="bar batt"><i id="batteryBar"></i></div>
-          </div>
+        <!-- Нижній блок: Керування та Статус Захисту -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Панель перемикачів -->
+            <div class="bg-cardbg border border-cardborder rounded-xl p-6">
+                <h2 class="text-lg font-bold text-white mb-4">Панель керування ключами (MOSFET)</h2>
+                <div class="space-y-4">
+                    
+                    <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
+                        <div>
+                            <div class="text-sm font-medium text-white">Канал зарядки (Charge MOSFET)</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sw-charge" class="sr-only peer" onchange="publishCommand('charge', this.checked)">
+                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
+                        <div>
+                            <div class="text-sm font-medium text-white">Канал розрядки (Discharge MOSFET)</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sw-discharge" class="sr-only peer" onchange="publishCommand('discharge', this.checked)">
+                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
+                        <div>
+                            <div class="text-sm font-medium text-white">Активний балансир</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sw-balance" class="sr-only peer" onchange="publishCommand('balance', this.checked)">
+                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
+                        </label>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Статуси систем захисту -->
+            <div class="bg-cardbg border border-cardborder rounded-xl p-6">
+                <h2 class="text-lg font-bold text-white mb-4">Статус систем захисту</h2>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
+                        <span class="text-zinc-400">Over Voltage:</span>
+                        <span id="prot-ov" class="text-turquoise-400 font-semibold">-</span>
+                    </div>
+                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
+                        <span class="text-zinc-400">Under Voltage:</span>
+                        <span id="prot-uv" class="text-turquoise-400 font-semibold">-</span>
+                    </div>
+                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
+                        <span class="text-zinc-400">Over Current:</span>
+                        <span id="prot-oc" class="text-turquoise-400 font-semibold">-</span>
+                    </div>
+                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
+                        <span class="text-zinc-400">Over Temp:</span>
+                        <span id="prot-ot" class="text-turquoise-400 font-semibold">-</span>
+                    </div>
+                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
+                        <span class="text-zinc-400">Short Circuit:</span>
+                        <span id="prot-sc" class="text-turquoise-400 font-semibold">-</span>
+                    </div>
+                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
+                        <span class="text-zinc-400">Cell Imbalance:</span>
+                        <span id="prot-imb" class="text-turquoise-400 font-semibold">-</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <div class="controls">
-          <button id="resetHistory">Скинути історію</button>
-        </div>
-        <div class="footer-note">
-          Логіка: позитивний струм АКБ = заряджання → працює мережа; негативний струм = розряджання → мережа вважається вимкненою. При струмі біля 0 А зберігається попередній стан.
-        </div>
-      </div>
 
-      <div class="mini-grid">
-        <div class="chart-box">
-          <p class="section-title">Потужність</p>
-          <canvas id="powerChart" width="480" height="180"></canvas>
-        </div>
-        <div class="chart-box">
-          <p class="section-title">Напруга АКБ</p>
-          <canvas id="voltageChart" width="480" height="180"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+    </main>
 
-<script>
-/* ==========================================================
-   POWER DASHBOARD
-   ВАЖЛИВО:
-   1) Зображення має лежати поруч з HTML під назвою power-flow.jpg
-   2) Для реальних MQTT-даних не потрібно створювати друге з'єднання.
-      Передавай дані з твого існуючого MQTT-обробника:
-      window.updatePowerDashboard(payload);
-   ========================================================== */
+    <!-- Скрипт логіки MQTT -->
+    <script>
+        // ================= НАЛАШТУВАННЯ MQTT =================
+        const MQTT_BROKER = "bde4a54afc814433bdef89862de7a1a3.s1.eu.hivemq.cloud"; 
+        const MQTT_PORT = 8884; // 8000 для Ws, 8884 для безпечного WSS (HiveMQ Cloud)
+        const MQTT_TOPIC_DATA = "bms/data";
+        const MQTT_TOPIC_CMD = "bms/command";
+        const CLIENT_ID = "bms_web_" + Math.random().toString(16).substr(2, 8);
+        
+        let client = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, CLIENT_ID);
 
-const CFG = {
-  inverterRatedW: 1000,
-  chargeThresholdA: 0.20,
-  dischargeThresholdA: -0.20,
-  historyKey: "power_dashboard_history_v1",
-  maxChartPoints: 60
-};
+        // Налаштування колбеків
+        client.onConnectionLost = onConnectionLost;
+        client.onMessageArrived = onMessageArrived;
 
-const state = {
-  gridVoltage: 230,
-  loadVoltage: 230,
-  batteryVoltage: 14.5,
-  batteryCurrent: 20,
-  soc: 80,
-  batteryTemp: 32,
-  roomTemp: 22.4,
-  loadPower: 250,
-  inverterLoad: 25,
-  mode: "grid",
-  lastTimestamp: Date.now(),
-  historyGridSec: 0,
-  historyBatterySec: 0,
-  powerHistory: [],
-  voltageHistory: []
-};
+        // Опції підключення
+        let options = {
+            timeout: 3,
+            onSuccess: onConnect,
+            onFailure: function (message) {
+                console.log("Помилка підключення: " + message.errorMessage);
+                setTimeout(connectMQTT, 5000); 
+            }, // <-- ОБОВ'ЯЗКОВО МАЄ БУТИ КОМА СУДЬ
+            useSSL: true, // Увімкнення безпечного підключення
+            userName: "Sasha_HMQ",    // Твій логін (з розділу Access Management)
+            password: "dZBd1^&b8n"    // Твій пароль
+        };
 
-function fmt(v, n=1){ return Number(v ?? 0).toFixed(n).replace(".", ","); }
+        function connectMQTT() {
+            console.log("Підключення до " + MQTT_BROKER + "...");
+            client.connect(options);
+        }
 
-function loadHistory(){
-  try{
-    const x = JSON.parse(localStorage.getItem(CFG.historyKey) || "null");
-    if(x && x.date === new Date().toISOString().slice(0,10)){
-      state.historyGridSec = x.grid || 0;
-      state.historyBatterySec = x.battery || 0;
-    }
-  }catch(e){}
-}
-function saveHistory(){
-  try{
-    localStorage.setItem(CFG.historyKey, JSON.stringify({
-      date:new Date().toISOString().slice(0,10),
-      grid:state.historyGridSec,
-      battery:state.historyBatterySec
-    }));
-  }catch(e){}
-}
-loadHistory();
+        function onConnect() {
+            console.log("Успішно підключено до MQTT!");
+            client.subscribe(MQTT_TOPIC_DATA);
+            
+            // Оновлюємо UI статусу підключення
+            const statusEl = document.getElementById("mqtt-status");
+            const indicatorEl = document.getElementById("mqtt-indicator");
+            
+            statusEl.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-950 text-turquoise-400 border border-turquoise-500/30";
+            indicatorEl.className = "w-2 h-2 rounded-full bg-turquoise-400";
+            statusEl.innerHTML = statusEl.innerHTML.replace("Очікування з'єднання...", "Онлайн");
+        }
 
-function timeStr(sec){
-  sec = Math.max(0, Math.floor(sec));
-  const h = Math.floor(sec/3600);
-  const m = Math.floor((sec%3600)/60);
-  const s = sec%60;
-  return `${String(h)}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Зв'язок втрачено: " + responseObject.errorMessage);
+                
+                // Оновлюємо UI на червоний статус
+                const statusEl = document.getElementById("mqtt-status");
+                const indicatorEl = document.getElementById("mqtt-indicator");
+                
+                statusEl.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-red-950 text-red-400 border border-red-500/30";
+                indicatorEl.className = "w-2 h-2 rounded-full bg-red-400";
+                statusEl.innerHTML = statusEl.innerHTML.replace("Онлайн", "Офлайн (Реконект...)");
+                
+                setTimeout(connectMQTT, 5000);
+            }
+        }
 
-function normalizePayload(p){
-  if(!p) return {};
-  return {
-    gridVoltage: num(p.gridVoltage, state.gridVoltage),
-    loadVoltage: num(p.loadVoltage, state.loadVoltage),
-    batteryVoltage: num(p.voltage ?? p.batteryVoltage, state.batteryVoltage),
-    batteryCurrent: num(p.current ?? p.batteryCurrent, state.batteryCurrent),
-    soc: num(p.soc ?? p.SOC, state.soc),
-    batteryTemp: num(p.temp1 ?? p.temperature ?? p.batteryTemp, state.batteryTemp),
-    roomTemp: num(p.roomTemp ?? p.ambientTemp ?? p.tempRoom, state.roomTemp),
-    loadPower: num(p.housePower ?? p.loadPower ?? p.powerHouse, Math.abs(num(p.power, state.loadPower))),
-    inverterLoad: num(p.inverterLoad, null)
-  };
-}
-function num(v, fallback){
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
+        // Обробка отриманих даних
+        function onMessageArrived(message) {
+            try {
+                const data = JSON.parse(message.payloadString);
+                updateDashboard(data);
+                updateTime();
+            } catch(e) {
+                console.log("Помилка парсингу JSON: ", e);
+            }
+        }
 
-function updateMode(){
-  if(Math.abs(state.batteryCurrent) < CFG.chargeThresholdA) return;
-  if(state.batteryCurrent >= CFG.chargeThresholdA) state.mode = "grid";
-  if(state.batteryCurrent <= CFG.dischargeThresholdA) state.mode = "battery";
-}
+        // Відправка команд при кліку на тумблери
+        function publishCommand(mosfet, state) {
+            if(client.isConnected()) {
+                const payload = JSON.stringify({ device: mosfet, state: state });
+                let msg = new Paho.MQTT.Message(payload);
+                msg.destinationName = MQTT_TOPIC_CMD;
+                client.send(msg);
+                console.log("Надіслано команду:", payload);
+            } else {
+                alert("Немає підключення до брокера!");
+            }
+        }
 
-function updateDerived(){
-  state.inverterLoad = Math.min(100, Math.max(0, state.loadPower / CFG.inverterRatedW * 100));
-}
+        // ================= ОНОВЛЕННЯ ДАШБОРДА =================
+        function updateDashboard(data) {
+            // Основні показники
+            if(data.soc !== undefined) {
+                document.getElementById("val-soc").innerText = data.soc;
+                document.getElementById("bar-soc").style.width = data.soc + "%";
+            }
+            if(data.voltage !== undefined) document.getElementById("val-voltage").innerText = data.voltage.toFixed(1);
+            if(data.power !== undefined) document.getElementById("val-power").innerText = data.power.toFixed(1);
+            if(data.current !== undefined) {
+                document.getElementById("val-current-full").innerText = data.current.toFixed(2) + " A";
+                let sign = data.current > 0 ? "+" : "";
+                document.getElementById("val-current-label").innerText = sign + data.current.toFixed(1) + " A";
+            }
+            if(data.temp1 !== undefined && data.temp2 !== undefined) {
+                let mainTemp = Math.max(data.temp1, data.temp2);
+                document.getElementById("val-temp-main").innerText = mainTemp.toFixed(1);
+                document.getElementById("val-temp1").innerText = data.temp1.toFixed(1);
+                document.getElementById("val-temp2").innerText = data.temp2.toFixed(1);
+            }
+            if(data.soh !== undefined) document.getElementById("val-soh").innerText = data.soh;
 
-function updateUI(){
-  document.getElementById("txtGridVoltage").textContent = `${fmt(state.gridVoltage,0)} В`;
-  document.getElementById("txtLoadVoltage").textContent = `${fmt(state.loadVoltage,0)} В`;
-  document.getElementById("txtBattVoltage").textContent = `${fmt(state.batteryVoltage,1)} В`;
-  document.getElementById("txtBattCurrent").textContent = `${fmt(Math.abs(state.batteryCurrent),1)} А`;
-  document.getElementById("txtSoc").textContent = `${fmt(state.soc,0)} %`;
-  document.getElementById("txtTemp").textContent = `${fmt(state.batteryTemp,1)} °C`;
-  document.getElementById("txtLoadPower").textContent = `${fmt(state.loadPower,0)} Вт`;
-  document.getElementById("txtInvLoad").textContent = `Інвертор ${fmt(state.inverterLoad,0)}%`;
-  document.getElementById("txtRoomTemp").textContent = `${fmt(state.roomTemp,1)} °C`;
+            // Комірки
+            if(data.cells && Array.isArray(data.cells)) {
+                let min = Math.min(...data.cells);
+                let max = Math.max(...data.cells);
+                let delta = max - min;
+                
+                document.getElementById("val-cell-min").innerText = min.toFixed(3);
+                document.getElementById("val-cell-max").innerText = max.toFixed(3);
+                document.getElementById("val-delta").innerText = delta.toFixed(3) + " V";
 
-  document.getElementById("powerKpi").textContent = fmt(state.loadPower,0);
-  document.getElementById("socKpi").textContent = fmt(state.soc,0);
-  document.getElementById("voltageKpi").textContent = fmt(state.batteryVoltage,1);
-  document.getElementById("currentKpi").textContent = fmt(Math.abs(state.batteryCurrent),1);
-  document.getElementById("roomTempKpi").textContent = fmt(state.roomTemp,1);
-  document.getElementById("invKpi").textContent = fmt(state.inverterLoad,0);
-  document.getElementById("socBar").style.width = `${Math.max(0,Math.min(100,state.soc))}%`;
+                // Рендер HTML комірок
+                let cellsHtml = '';
+                data.cells.forEach((vol, index) => {
+                    let num = (index + 1).toString().padStart(2, '0');
+                    let isMin = vol === min;
+                    
+                    let bgClass = isMin ? "bg-zinc-900 border-turquoise-500/50" : "bg-zinc-900 border-cardborder";
+                    let titleClass = isMin ? "text-turquoise-400" : "text-zinc-500";
+                    let valClass = isMin ? "text-turquoise-400" : "text-white";
+                    let label = isMin ? `CELL ${num} (MIN)` : `CELL ${num}`;
 
-  const src = document.getElementById("sourceValue");
-  const sub = document.getElementById("sourceSub");
-  const dot = document.getElementById("statusDot");
-  const status = document.getElementById("systemStatus");
+                    cellsHtml += `
+                        <div class="${bgClass} border p-3 rounded-lg text-center relative transition-colors duration-300">
+                            <span class="text-[10px] ${titleClass} font-mono">${label}</span>
+                            <div class="text-sm font-bold ${valClass} font-mono mt-1">${vol.toFixed(3)} V</div>
+                        </div>
+                    `;
+                });
+                document.getElementById("cells-container").innerHTML = cellsHtml;
+            }
 
-  if(state.mode === "grid"){
-    src.textContent = "МЕРЕЖА";
-    sub.textContent = state.batteryCurrent > CFG.chargeThresholdA
-      ? "акумулятор заряджається"
-      : "живлення від мережі";
-    src.parentElement.className = "kpi green";
-    dot.classList.remove("off");
-    status.textContent = "Мережа присутня";
-  }else{
-    src.textContent = "АКУМУЛЯТОР";
-    sub.textContent = "мережа вимкнена · розряд АКБ";
-    src.parentElement.className = "kpi yellow";
-    dot.classList.add("off");
-    status.textContent = "Робота від акумулятора";
-  }
+            // Перемикачі (Синхронізація з реальним станом)
+            if(data.mosfet) {
+                if(data.mosfet.charge !== undefined) document.getElementById("sw-charge").checked = data.mosfet.charge;
+                if(data.mosfet.discharge !== undefined) document.getElementById("sw-discharge").checked = data.mosfet.discharge;
+                if(data.mosfet.balance !== undefined) document.getElementById("sw-balance").checked = data.mosfet.balance;
+            }
 
-  document.getElementById("gridTime").textContent = timeStr(state.historyGridSec);
-  document.getElementById("batteryTime").textContent = timeStr(state.historyBatterySec);
+            // Системи захисту
+            if(data.protection) {
+                updateProtection("prot-ov", data.protection.ov);
+                updateProtection("prot-uv", data.protection.uv);
+                updateProtection("prot-oc", data.protection.oc);
+                updateProtection("prot-ot", data.protection.ot);
+                updateProtection("prot-sc", data.protection.sc);
+                updateProtection("prot-imb", data.protection.imb);
+            }
+        }
 
-  const total = state.historyGridSec + state.historyBatterySec;
-  document.getElementById("gridBar").style.width = total ? `${state.historyGridSec/total*100}%` : "0%";
-  document.getElementById("batteryBar").style.width = total ? `${state.historyBatterySec/total*100}%` : "0%";
+        function updateProtection(id, isOk) {
+            const el = document.getElementById(id);
+            if(isOk) {
+                el.innerText = "OK";
+                el.className = "text-turquoise-400 font-semibold";
+            } else {
+                el.innerText = "ALARM";
+                el.className = "text-red-500 font-bold";
+            }
+        }
 
-  // Керування анімаціями
-  document.getElementById("dotGrid").style.display = state.mode === "grid" ? "block" : "none";
-  document.getElementById("dotCharge").style.display = state.mode === "grid" && state.batteryCurrent > CFG.chargeThresholdA ? "block" : "none";
-  document.getElementById("dotDischarge").style.display = state.mode === "battery" ? "block" : "none";
-  document.getElementById("dotLoad").style.display = state.loadPower > 1 ? "block" : "none";
+        function updateTime() {
+            let now = new Date();
+            let timeString = now.toLocaleTimeString('uk-UA');
+            document.getElementById("last-update").innerText = "Оновлено: " + timeString;
+        }
 
-  document.getElementById("pGrid").style.opacity = state.mode === "grid" ? ".65" : ".14";
-  document.getElementById("pCharge").style.opacity = (state.mode === "grid" && state.batteryCurrent > CFG.chargeThresholdA) ? ".80" : ".12";
-  document.getElementById("pDischarge").style.opacity = state.mode === "battery" ? ".80" : ".12";
-  document.getElementById("pLoad").style.opacity = state.loadPower > 1 ? ".65" : ".12";
-}
-
-function pushHistory(){
-  state.powerHistory.push(state.loadPower);
-  state.voltageHistory.push(state.batteryVoltage);
-  if(state.powerHistory.length > CFG.maxChartPoints) state.powerHistory.shift();
-  if(state.voltageHistory.length > CFG.maxChartPoints) state.voltageHistory.shift();
-  drawMiniChart("powerChart", state.powerHistory, "#2aa9e0", "W");
-  drawMiniChart("voltageChart", state.voltageHistory, "#19b8b0", "V");
-}
-
-function drawMiniChart(id, data, color, unit){
-  const c = document.getElementById(id);
-  const ctx = c.getContext("2d");
-  const w = c.width, h = c.height;
-  ctx.clearRect(0,0,w,h);
-
-  ctx.strokeStyle = "rgba(255,255,255,.08)";
-  ctx.lineWidth = 1;
-  for(let i=1;i<4;i++){
-    const y = i*h/4;
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
-  }
-
-  if(data.length < 2) return;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const span = Math.max(.001, max-min);
-
-  ctx.beginPath();
-  data.forEach((v,i)=>{
-    const x = i*(w/(data.length-1));
-    const y = h - ((v-min)/span)*(h-18)-9;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 9;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-}
-
-function tickHistory(){
-  const now = Date.now();
-  const dt = Math.max(0, Math.min(5, (now-state.lastTimestamp)/1000));
-  state.lastTimestamp = now;
-
-  if(state.mode === "grid") state.historyGridSec += dt;
-  if(state.mode === "battery") state.historyBatterySec += dt;
-
-  saveHistory();
-  updateUI();
-}
-
-window.updatePowerDashboard = function(payload){
-  const x = normalizePayload(payload);
-
-  state.gridVoltage = x.gridVoltage;
-  state.loadVoltage = x.loadVoltage;
-  state.batteryVoltage = x.batteryVoltage;
-  state.batteryCurrent = x.batteryCurrent;
-  state.soc = Math.max(0,Math.min(100,x.soc));
-  state.batteryTemp = x.batteryTemp;
-  state.roomTemp = x.roomTemp;
-  state.loadPower = Math.max(0,x.loadPower);
-
-  updateMode();
-  updateDerived();
-  updateUI();
-  pushHistory();
-};
-
-// Корисна функція для швидкої перевірки з консолі:
-// updatePowerDashboard({voltage:13.28,current:-8.45,power:-112.2,soc:78,temp1:24.6,roomTemp:22.1,housePower:115});
-
-document.getElementById("resetHistory").addEventListener("click",()=>{
-  state.historyGridSec = 0;
-  state.historyBatterySec = 0;
-  saveHistory();
-  updateUI();
-});
-
-// Початкові тестові дані.
-// Після підключення твого MQTT можна видалити/замінити цей блок.
-updatePowerDashboard({
-  gridVoltage:230,
-  loadVoltage:230,
-  voltage:14.5,
-  current:20,
-  soc:80,
-  temp1:32,
-  roomTemp:22.4,
-  housePower:250
-});
-
-setInterval(tickHistory,1000);
-</script>
+        // Запуск підключення при завантаженні сторінки
+        window.onload = connectMQTT;
+    </script>
 </body>
 </html>
