@@ -1,11 +1,14 @@
+```html
 <!DOCTYPE html>
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BMS Dashboard</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -25,23 +28,41 @@
         }
     </script>
 
-    <!-- Використовуємо надійний CDN jsDelivr -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+    <!-- Paho MQTT -->
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js"
+        type="text/javascript">
+    </script>
 </head>
+
 <body class="bg-darkbg text-zinc-200 font-sans min-h-screen p-4 md:p-8">
 
     <!-- Верхня панель -->
     <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between border-b border-cardborder pb-4 gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white tracking-wide">BMS Monitor</h1>
-            <p class="text-sm text-zinc-400">Система моніторингу акумуляторного блоку (4S LiFePO4)</p>
+            <p class="text-sm text-zinc-400">
+                Система моніторингу акумуляторного блоку (4S LiFePO4)
+            </p>
         </div>
+
         <div class="flex items-center gap-3">
-            <span id="mqtt-status" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600">
-                <span class="w-2 h-2 rounded-full bg-zinc-500" id="mqtt-indicator"></span>
+            <span
+                id="mqtt-status"
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600"
+            >
+                <span
+                    class="w-2 h-2 rounded-full bg-zinc-500"
+                    id="mqtt-indicator">
+                </span>
                 Очікування з'єднання...
             </span>
-            <span class="text-xs text-zinc-500" id="last-update">Оновлено: ніколи</span>
+
+            <span
+                class="text-xs text-zinc-500"
+                id="last-update">
+                Оновлено: ніколи
+            </span>
         </div>
     </header>
 
@@ -49,115 +70,229 @@
 
         <!-- Сітка основних показників -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
+
             <!-- Заряд (SoC) -->
             <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Рівень заряду (SoC)</span>
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                    Рівень заряду (SoC)
+                </span>
+
                 <div class="flex items-baseline justify-between mt-2">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-soc">0</span><span class="text-lg text-turquoise-400 font-normal">%</span></span>
-                    <span class="text-xs text-turquoise-400" id="val-current-label">+0.0 A</span>
+                    <span class="text-3xl font-extrabold text-white">
+                        <span id="val-soc">0</span>
+                        <span class="text-lg text-turquoise-400 font-normal">%</span>
+                    </span>
+
+                    <span
+                        class="text-xs text-turquoise-400"
+                        id="val-current-label">
+                        +0.0 A
+                    </span>
                 </div>
+
                 <div class="w-full bg-zinc-800 h-2.5 rounded-full mt-4 overflow-hidden">
-                    <div id="bar-soc" class="bg-turquoise-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    <div
+                        id="bar-soc"
+                        class="bg-turquoise-500 h-2.5 rounded-full transition-all duration-500"
+                        style="width: 0%">
+                    </div>
                 </div>
             </div>
 
             <!-- Напруга -->
             <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Загальна напруга</span>
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                    Загальна напруга
+                </span>
+
                 <div class="mt-2">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-voltage">0.0</span> <span class="text-lg text-turquoise-400 font-normal">V</span></span>
+                    <span class="text-3xl font-extrabold text-white">
+                        <span id="val-voltage">0.0</span>
+                        <span class="text-lg text-turquoise-400 font-normal">V</span>
+                    </span>
                 </div>
+
+                <!-- ТЕПЕР ДИНАМІЧНІ MIN / MAX -->
                 <div class="text-xs text-zinc-400 mt-4 flex justify-between">
-                    <span>Мін: <span id="min-voltage">—</span> V</span>
-                    <span>Макс: <span id="max-voltage">—</span> V</span>
+                    <span>
+                        Мін:
+                        <span id="min-voltage">—</span> V
+                    </span>
+
+                    <span>
+                        Макс:
+                        <span id="max-voltage">—</span> V
+                    </span>
                 </div>
             </div>
 
             <!-- Струм та Потужність -->
             <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Поточна потужність</span>
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                    Поточна потужність
+                </span>
+
                 <div class="mt-2">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-power">0.0</span> <span class="text-lg text-turquoise-400 font-normal">W</span></span>
+                    <span class="text-3xl font-extrabold text-white">
+                        <span id="val-power">0.0</span>
+                        <span class="text-lg text-turquoise-400 font-normal">W</span>
+                    </span>
                 </div>
+
                 <div class="text-xs text-zinc-400 mt-4">
-                    <span>Струм: </span><span class="text-zinc-200" id="val-current-full">0.00 A</span>
+                    <span>Струм: </span>
+                    <span
+                        class="text-zinc-200"
+                        id="val-current-full">
+                        0.00 A
+                    </span>
                 </div>
             </div>
 
             <!-- Температура та Здоров'я -->
             <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Температура / SoH</span>
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                    Температура / SoH
+                </span>
+
                 <div class="mt-2 flex justify-between items-baseline">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-temp-main">0.0</span> <span class="text-lg text-turquoise-400 font-normal">°C</span></span>
-                    <span class="text-sm font-semibold text-turquoise-400">SoH <span id="val-soh">0</span>%</span>
+                    <span class="text-3xl font-extrabold text-white">
+                        <span id="val-temp-main">0.0</span>
+                        <span class="text-lg text-turquoise-400 font-normal">°C</span>
+                    </span>
+
+                    <span class="text-sm font-semibold text-turquoise-400">
+                        SoH <span id="val-soh">0</span>%
+                    </span>
                 </div>
+
                 <div class="text-xs text-zinc-400 mt-4 flex justify-between">
-                    <span>Датчик 1: <span id="val-temp1">0.0</span>°C</span>
-                    <span>Датчик 2: <span id="val-temp2">0.0</span>°C</span>
+                    <span>
+                        Датчик 1:
+                        <span id="val-temp1">0.0</span>°C
+                    </span>
+
+                    <span>
+                        Датчик 2:
+                        <span id="val-temp2">0.0</span>°C
+                    </span>
                 </div>
             </div>
         </div>
 
-        <!-- Покомірні напруги (Cell Voltages) -->
+        <!-- Покомірні напруги -->
         <div class="bg-cardbg border border-cardborder rounded-xl p-6">
+
             <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Напруга комірок (4S)</h2>
-                    <p class="text-xs text-zinc-400">Різниця напруг (Delta): <span class="text-turquoise-400 font-mono" id="val-delta">0.000 V</span></p>
+                    <h2 class="text-lg font-bold text-white">
+                        Напруга комірок (4S)
+                    </h2>
+
+                    <p class="text-xs text-zinc-400">
+                        Різниця напруг (Delta):
+                        <span
+                            class="text-turquoise-400 font-mono"
+                            id="val-delta">
+                            0.000 V
+                        </span>
+                    </p>
                 </div>
+
                 <div class="flex gap-4 text-xs">
+
                     <span class="flex items-center gap-1.5 text-zinc-400">
-                        <span class="w-2.5 h-2.5 rounded-sm bg-turquoise-500"></span> Мін: <span id="val-cell-min">0.000</span>V
+                        <span class="w-2.5 h-2.5 rounded-sm bg-turquoise-500"></span>
+                        Мін:
+                        <span id="val-cell-min">0.000</span>V
                     </span>
+
                     <span class="flex items-center gap-1.5 text-zinc-400">
-                        <span class="w-2.5 h-2.5 rounded-sm bg-teal-300"></span> Макс: <span id="val-cell-max">0.000</span>V
+                        <span class="w-2.5 h-2.5 rounded-sm bg-teal-300"></span>
+                        Макс:
+                        <span id="val-cell-max">0.000</span>V
                     </span>
+
                 </div>
             </div>
 
-            <!-- Контейнер для генерації комірок через JS -->
-            <div id="cells-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                <!-- Очікування даних... -->
-                <div class="col-span-full text-center text-zinc-500 text-sm">Очікування даних по комірках...</div>
+            <div
+                id="cells-container"
+                class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+
+                <div class="col-span-full text-center text-zinc-500 text-sm">
+                    Очікування даних по комірках...
+                </div>
+
             </div>
         </div>
 
-        <!-- Нижній блок: Керування та Статус Захисту -->
+        <!-- Нижній блок -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             <!-- Панель перемикачів -->
             <div class="bg-cardbg border border-cardborder rounded-xl p-6">
-                <h2 class="text-lg font-bold text-white mb-4">Панель керування ключами (MOSFET)</h2>
+
+                <h2 class="text-lg font-bold text-white mb-4">
+                    Панель керування ключами (MOSFET)
+                </h2>
+
                 <div class="space-y-4">
-                    
+
                     <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
                         <div>
-                            <div class="text-sm font-medium text-white">Канал зарядки (Charge MOSFET)</div>
+                            <div class="text-sm font-medium text-white">
+                                Канал зарядки (Charge MOSFET)
+                            </div>
                         </div>
+
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="sw-charge" class="sr-only peer" onchange="publishCommand('charge', this.checked)">
-                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
+                            <input
+                                type="checkbox"
+                                id="sw-charge"
+                                class="sr-only peer"
+                                onchange="publishCommand('charge', this.checked)">
+
+                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500">
+                            </div>
                         </label>
                     </div>
 
                     <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
                         <div>
-                            <div class="text-sm font-medium text-white">Канал розрядки (Discharge MOSFET)</div>
+                            <div class="text-sm font-medium text-white">
+                                Канал розрядки (Discharge MOSFET)
+                            </div>
                         </div>
+
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="sw-discharge" class="sr-only peer" onchange="publishCommand('discharge', this.checked)">
-                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
+                            <input
+                                type="checkbox"
+                                id="sw-discharge"
+                                class="sr-only peer"
+                                onchange="publishCommand('discharge', this.checked)">
+
+                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500">
+                            </div>
                         </label>
                     </div>
 
                     <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
                         <div>
-                            <div class="text-sm font-medium text-white">Активний балансир</div>
+                            <div class="text-sm font-medium text-white">
+                                Активний балансир
+                            </div>
                         </div>
+
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="sw-balance" class="sr-only peer" onchange="publishCommand('balance', this.checked)">
-                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
+                            <input
+                                type="checkbox"
+                                id="sw-balance"
+                                class="sr-only peer"
+                                onchange="publishCommand('balance', this.checked)">
+
+                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500">
+                            </div>
                         </label>
                     </div>
 
@@ -166,32 +301,43 @@
 
             <!-- Статуси систем захисту -->
             <div class="bg-cardbg border border-cardborder rounded-xl p-6">
-                <h2 class="text-lg font-bold text-white mb-4">Статус систем захисту</h2>
+
+                <h2 class="text-lg font-bold text-white mb-4">
+                    Статус систем захисту
+                </h2>
+
                 <div class="grid grid-cols-2 gap-3 text-xs">
+
                     <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
                         <span class="text-zinc-400">Over Voltage:</span>
                         <span id="prot-ov" class="text-turquoise-400 font-semibold">-</span>
                     </div>
+
                     <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
                         <span class="text-zinc-400">Under Voltage:</span>
                         <span id="prot-uv" class="text-turquoise-400 font-semibold">-</span>
                     </div>
+
                     <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
                         <span class="text-zinc-400">Over Current:</span>
                         <span id="prot-oc" class="text-turquoise-400 font-semibold">-</span>
                     </div>
+
                     <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
                         <span class="text-zinc-400">Over Temp:</span>
                         <span id="prot-ot" class="text-turquoise-400 font-semibold">-</span>
                     </div>
+
                     <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
                         <span class="text-zinc-400">Short Circuit:</span>
                         <span id="prot-sc" class="text-turquoise-400 font-semibold">-</span>
                     </div>
+
                     <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
                         <span class="text-zinc-400">Cell Imbalance:</span>
                         <span id="prot-imb" class="text-turquoise-400 font-semibold">-</span>
                     </div>
+
                 </div>
             </div>
 
@@ -201,180 +347,597 @@
 
     <!-- Скрипт логіки MQTT -->
     <script>
+
         // ================= НАЛАШТУВАННЯ MQTT =================
-        const MQTT_BROKER = "bde4a54afc814433bdef89862de7a1a3.s1.eu.hivemq.cloud"; 
-        const MQTT_PORT = 8884; // 8000 для Ws, 8884 для безпечного WSS (HiveMQ Cloud)
+
+        const MQTT_BROKER =
+            "bde4a54afc814433bdef89862de7a1a3.s1.eu.hivemq.cloud";
+
+        const MQTT_PORT = 8884;
+
         const MQTT_TOPIC_DATA = "bms/data";
         const MQTT_TOPIC_CMD = "bms/command";
-        const CLIENT_ID = "bms_web_" + Math.random().toString(16).substr(2, 8);
-        
-        let client = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, CLIENT_ID);
 
-        // Налаштування колбеків
+        const CLIENT_ID =
+            "bms_web_" + Math.random().toString(16).substr(2, 8);
+
+
+        // =====================================================
+        // ДИНАМІЧНІ MIN / MAX ЗАГАЛЬНОЇ НАПРУГИ
+        // =====================================================
+
+        let voltageMin = null;
+        let voltageMax = null;
+
+
+        // =====================================================
+        // MQTT CLIENT
+        // =====================================================
+
+        let client = new Paho.MQTT.Client(
+            MQTT_BROKER,
+            MQTT_PORT,
+            CLIENT_ID
+        );
+
         client.onConnectionLost = onConnectionLost;
         client.onMessageArrived = onMessageArrived;
 
-        // Опції підключення
+
+        // =====================================================
+        // ОПЦІЇ ПІДКЛЮЧЕННЯ
+        // =====================================================
+
         let options = {
+
             timeout: 3,
+
             onSuccess: onConnect,
+
             onFailure: function (message) {
-                console.log("Помилка підключення: " + message.errorMessage);
-                setTimeout(connectMQTT, 5000); 
-            }, // <-- ОБОВ'ЯЗКОВО МАЄ БУТИ КОМА СУДЬ
-            useSSL: true, // Увімкнення безпечного підключення
-            userName: "Sasha_HMQ",    // Твій логін (з розділу Access Management)
-            password: "dZBd1^&b8n"    // Твій пароль
+
+                console.log(
+                    "Помилка підключення: " +
+                    message.errorMessage
+                );
+
+                setTimeout(connectMQTT, 5000);
+
+            },
+
+            useSSL: true,
+
+            userName: "Sasha_HMQ",
+
+            password: "dZBd1^&b8n"
         };
 
+
+        // =====================================================
+        // ПІДКЛЮЧЕННЯ MQTT
+        // =====================================================
+
         function connectMQTT() {
-            console.log("Підключення до " + MQTT_BROKER + "...");
+
+            console.log(
+                "Підключення до " +
+                MQTT_BROKER +
+                "..."
+            );
+
             client.connect(options);
         }
 
+
+        // =====================================================
+        // MQTT CONNECT
+        // =====================================================
+
         function onConnect() {
-            console.log("Успішно підключено до MQTT!");
+
+            console.log(
+                "Успішно підключено до MQTT!"
+            );
+
             client.subscribe(MQTT_TOPIC_DATA);
-            
-            // Оновлюємо UI статусу підключення
-            const statusEl = document.getElementById("mqtt-status");
-            const indicatorEl = document.getElementById("mqtt-indicator");
-            
-            statusEl.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-950 text-turquoise-400 border border-turquoise-500/30";
-            indicatorEl.className = "w-2 h-2 rounded-full bg-turquoise-400";
-            statusEl.innerHTML = statusEl.innerHTML.replace("Очікування з'єднання...", "Онлайн");
+
+            const statusEl =
+                document.getElementById("mqtt-status");
+
+            const indicatorEl =
+                document.getElementById("mqtt-indicator");
+
+            statusEl.className =
+                "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-950 text-turquoise-400 border border-turquoise-500/30";
+
+            indicatorEl.className =
+                "w-2 h-2 rounded-full bg-turquoise-400";
+
+            statusEl.innerHTML =
+                statusEl.innerHTML.replace(
+                    "Очікування з'єднання...",
+                    "Онлайн"
+                );
         }
 
+
+        // =====================================================
+        // ВТРАТА З'ЄДНАННЯ
+        // =====================================================
+
         function onConnectionLost(responseObject) {
+
             if (responseObject.errorCode !== 0) {
-                console.log("Зв'язок втрачено: " + responseObject.errorMessage);
-                
-                // Оновлюємо UI на червоний статус
-                const statusEl = document.getElementById("mqtt-status");
-                const indicatorEl = document.getElementById("mqtt-indicator");
-                
-                statusEl.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-red-950 text-red-400 border border-red-500/30";
-                indicatorEl.className = "w-2 h-2 rounded-full bg-red-400";
-                statusEl.innerHTML = statusEl.innerHTML.replace("Онлайн", "Офлайн (Реконект...)");
-                
+
+                console.log(
+                    "Зв'язок втрачено: " +
+                    responseObject.errorMessage
+                );
+
+                const statusEl =
+                    document.getElementById("mqtt-status");
+
+                const indicatorEl =
+                    document.getElementById("mqtt-indicator");
+
+                statusEl.className =
+                    "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-red-950 text-red-400 border border-red-500/30";
+
+                indicatorEl.className =
+                    "w-2 h-2 rounded-full bg-red-400";
+
+                statusEl.innerHTML =
+                    statusEl.innerHTML.replace(
+                        "Онлайн",
+                        "Офлайн (Реконект...)"
+                    );
+
                 setTimeout(connectMQTT, 5000);
             }
         }
 
-        // Обробка отриманих даних
+
+        // =====================================================
+        // ОТРИМАННЯ MQTT ПОВІДОМЛЕННЯ
+        // =====================================================
+
         function onMessageArrived(message) {
+
             try {
-                const data = JSON.parse(message.payloadString);
+
+                const data =
+                    JSON.parse(message.payloadString);
+
                 updateDashboard(data);
+
                 updateTime();
-            } catch(e) {
-                console.log("Помилка парсингу JSON: ", e);
+
+            } catch (e) {
+
+                console.log(
+                    "Помилка парсингу JSON: ",
+                    e
+                );
             }
         }
 
-        // Відправка команд при кліку на тумблери
+
+        // =====================================================
+        // ВІДПРАВКА КОМАНД
+        // =====================================================
+
         function publishCommand(mosfet, state) {
-            if(client.isConnected()) {
-                const payload = JSON.stringify({ device: mosfet, state: state });
-                let msg = new Paho.MQTT.Message(payload);
-                msg.destinationName = MQTT_TOPIC_CMD;
+
+            if (client.isConnected()) {
+
+                const payload =
+                    JSON.stringify({
+                        device: mosfet,
+                        state: state
+                    });
+
+                let msg =
+                    new Paho.MQTT.Message(payload);
+
+                msg.destinationName =
+                    MQTT_TOPIC_CMD;
+
                 client.send(msg);
-                console.log("Надіслано команду:", payload);
+
+                console.log(
+                    "Надіслано команду:",
+                    payload
+                );
+
             } else {
-                alert("Немає підключення до брокера!");
+
+                alert(
+                    "Немає підключення до брокера!"
+                );
             }
         }
 
-        // ================= ОНОВЛЕННЯ ДАШБОРДА =================
+
+        // =====================================================
+        // ОНОВЛЕННЯ DASHBOARD
+        // =====================================================
+
         function updateDashboard(data) {
-            // Основні показники
-            if(data.soc !== undefined) {
-                document.getElementById("val-soc").innerText = data.soc;
-                document.getElementById("bar-soc").style.width = data.soc + "%";
-            }
-            if(data.voltage !== undefined) document.getElementById("val-voltage").innerText = data.voltage.toFixed(1);
-            if(data.power !== undefined) document.getElementById("val-power").innerText = data.power.toFixed(1);
-            if(data.current !== undefined) {
-                document.getElementById("val-current-full").innerText = data.current.toFixed(2) + " A";
-                let sign = data.current > 0 ? "+" : "";
-                document.getElementById("val-current-label").innerText = sign + data.current.toFixed(1) + " A";
-            }
-            if(data.temp1 !== undefined && data.temp2 !== undefined) {
-                let mainTemp = Math.max(data.temp1, data.temp2);
-                document.getElementById("val-temp-main").innerText = mainTemp.toFixed(1);
-                document.getElementById("val-temp1").innerText = data.temp1.toFixed(1);
-                document.getElementById("val-temp2").innerText = data.temp2.toFixed(1);
-            }
-            if(data.soh !== undefined) document.getElementById("val-soh").innerText = data.soh;
 
-            // Комірки
-            if(data.cells && Array.isArray(data.cells)) {
-                let min = Math.min(...data.cells);
-                let max = Math.max(...data.cells);
-                let delta = max - min;
-                
-                document.getElementById("val-cell-min").innerText = min.toFixed(3);
-                document.getElementById("val-cell-max").innerText = max.toFixed(3);
-                document.getElementById("val-delta").innerText = delta.toFixed(3) + " V";
+            // -------------------------------------------------
+            // SOC
+            // -------------------------------------------------
 
-                // Рендер HTML комірок
+            if (data.soc !== undefined) {
+
+                document.getElementById(
+                    "val-soc"
+                ).innerText = data.soc;
+
+                document.getElementById(
+                    "bar-soc"
+                ).style.width =
+                    data.soc + "%";
+            }
+
+
+            // -------------------------------------------------
+            // ЗАГАЛЬНА НАПРУГА + ДИНАМІЧНІ MIN / MAX
+            // -------------------------------------------------
+
+            if (
+                data.voltage !== undefined &&
+                Number.isFinite(Number(data.voltage))
+            ) {
+
+                const voltage =
+                    Number(data.voltage);
+
+                // Поточна напруга
+                document.getElementById(
+                    "val-voltage"
+                ).innerText =
+                    voltage.toFixed(2);
+
+
+                // Перше отримане значення
+                if (voltageMin === null) {
+
+                    voltageMin = voltage;
+                    voltageMax = voltage;
+
+                } else {
+
+                    // Новий мінімум
+                    if (voltage < voltageMin) {
+                        voltageMin = voltage;
+                    }
+
+                    // Новий максимум
+                    if (voltage > voltageMax) {
+                        voltageMax = voltage;
+                    }
+                }
+
+
+                // Виводимо MIN
+                document.getElementById(
+                    "min-voltage"
+                ).innerText =
+                    voltageMin.toFixed(2);
+
+
+                // Виводимо MAX
+                document.getElementById(
+                    "max-voltage"
+                ).innerText =
+                    voltageMax.toFixed(2);
+            }
+
+
+            // -------------------------------------------------
+            // ПОТУЖНІСТЬ
+            // -------------------------------------------------
+
+            if (data.power !== undefined) {
+
+                document.getElementById(
+                    "val-power"
+                ).innerText =
+                    Number(data.power).toFixed(1);
+            }
+
+
+            // -------------------------------------------------
+            // СТРУМ
+            // -------------------------------------------------
+
+            if (data.current !== undefined) {
+
+                const current =
+                    Number(data.current);
+
+                document.getElementById(
+                    "val-current-full"
+                ).innerText =
+                    current.toFixed(2) + " A";
+
+                let sign =
+                    current > 0 ? "+" : "";
+
+                document.getElementById(
+                    "val-current-label"
+                ).innerText =
+                    sign +
+                    current.toFixed(1) +
+                    " A";
+            }
+
+
+            // -------------------------------------------------
+            // ТЕМПЕРАТУРА
+            // -------------------------------------------------
+
+            if (
+                data.temp1 !== undefined &&
+                data.temp2 !== undefined
+            ) {
+
+                const temp1 =
+                    Number(data.temp1);
+
+                const temp2 =
+                    Number(data.temp2);
+
+                let mainTemp =
+                    Math.max(temp1, temp2);
+
+                document.getElementById(
+                    "val-temp-main"
+                ).innerText =
+                    mainTemp.toFixed(1);
+
+                document.getElementById(
+                    "val-temp1"
+                ).innerText =
+                    temp1.toFixed(1);
+
+                document.getElementById(
+                    "val-temp2"
+                ).innerText =
+                    temp2.toFixed(1);
+            }
+
+
+            // -------------------------------------------------
+            // SOH
+            // -------------------------------------------------
+
+            if (data.soh !== undefined) {
+
+                document.getElementById(
+                    "val-soh"
+                ).innerText =
+                    data.soh;
+            }
+
+
+            // -------------------------------------------------
+            // КОМІРКИ
+            // -------------------------------------------------
+
+            if (
+                data.cells &&
+                Array.isArray(data.cells)
+            ) {
+
+                let min =
+                    Math.min(...data.cells);
+
+                let max =
+                    Math.max(...data.cells);
+
+                let delta =
+                    max - min;
+
+                document.getElementById(
+                    "val-cell-min"
+                ).innerText =
+                    min.toFixed(3);
+
+                document.getElementById(
+                    "val-cell-max"
+                ).innerText =
+                    max.toFixed(3);
+
+                document.getElementById(
+                    "val-delta"
+                ).innerText =
+                    delta.toFixed(3) + " V";
+
+
                 let cellsHtml = '';
-                data.cells.forEach((vol, index) => {
-                    let num = (index + 1).toString().padStart(2, '0');
-                    let isMin = vol === min;
-                    
-                    let bgClass = isMin ? "bg-zinc-900 border-turquoise-500/50" : "bg-zinc-900 border-cardborder";
-                    let titleClass = isMin ? "text-turquoise-400" : "text-zinc-500";
-                    let valClass = isMin ? "text-turquoise-400" : "text-white";
-                    let label = isMin ? `CELL ${num} (MIN)` : `CELL ${num}`;
 
-                    cellsHtml += `
-                        <div class="${bgClass} border p-3 rounded-lg text-center relative transition-colors duration-300">
-                            <span class="text-[10px] ${titleClass} font-mono">${label}</span>
-                            <div class="text-sm font-bold ${valClass} font-mono mt-1">${vol.toFixed(3)} V</div>
-                        </div>
-                    `;
-                });
-                document.getElementById("cells-container").innerHTML = cellsHtml;
+                data.cells.forEach(
+                    (vol, index) => {
+
+                        let num =
+                            (index + 1)
+                            .toString()
+                            .padStart(2, '0');
+
+                        let isMin =
+                            vol === min;
+
+                        let bgClass =
+                            isMin
+                                ? "bg-zinc-900 border-turquoise-500/50"
+                                : "bg-zinc-900 border-cardborder";
+
+                        let titleClass =
+                            isMin
+                                ? "text-turquoise-400"
+                                : "text-zinc-500";
+
+                        let valClass =
+                            isMin
+                                ? "text-turquoise-400"
+                                : "text-white";
+
+                        let label =
+                            isMin
+                                ? `CELL ${num} (MIN)`
+                                : `CELL ${num}`;
+
+
+                        cellsHtml += `
+                            <div class="${bgClass} border p-3 rounded-lg text-center relative transition-colors duration-300">
+                                <span class="text-[10px] ${titleClass} font-mono">
+                                    ${label}
+                                </span>
+
+                                <div class="text-sm font-bold ${valClass} font-mono mt-1">
+                                    ${Number(vol).toFixed(3)} V
+                                </div>
+                            </div>
+                        `;
+                    }
+                );
+
+                document.getElementById(
+                    "cells-container"
+                ).innerHTML =
+                    cellsHtml;
             }
 
-            // Перемикачі (Синхронізація з реальним станом)
-            if(data.mosfet) {
-                if(data.mosfet.charge !== undefined) document.getElementById("sw-charge").checked = data.mosfet.charge;
-                if(data.mosfet.discharge !== undefined) document.getElementById("sw-discharge").checked = data.mosfet.discharge;
-                if(data.mosfet.balance !== undefined) document.getElementById("sw-balance").checked = data.mosfet.balance;
+
+            // -------------------------------------------------
+            // MOSFET
+            // -------------------------------------------------
+
+            if (data.mosfet) {
+
+                if (
+                    data.mosfet.charge !== undefined
+                ) {
+                    document.getElementById(
+                        "sw-charge"
+                    ).checked =
+                        data.mosfet.charge;
+                }
+
+                if (
+                    data.mosfet.discharge !== undefined
+                ) {
+                    document.getElementById(
+                        "sw-discharge"
+                    ).checked =
+                        data.mosfet.discharge;
+                }
+
+                if (
+                    data.mosfet.balance !== undefined
+                ) {
+                    document.getElementById(
+                        "sw-balance"
+                    ).checked =
+                        data.mosfet.balance;
+                }
             }
 
-            // Системи захисту
-            if(data.protection) {
-                updateProtection("prot-ov", data.protection.ov);
-                updateProtection("prot-uv", data.protection.uv);
-                updateProtection("prot-oc", data.protection.oc);
-                updateProtection("prot-ot", data.protection.ot);
-                updateProtection("prot-sc", data.protection.sc);
-                updateProtection("prot-imb", data.protection.imb);
+
+            // -------------------------------------------------
+            // ЗАХИСТ
+            // -------------------------------------------------
+
+            if (data.protection) {
+
+                updateProtection(
+                    "prot-ov",
+                    data.protection.ov
+                );
+
+                updateProtection(
+                    "prot-uv",
+                    data.protection.uv
+                );
+
+                updateProtection(
+                    "prot-oc",
+                    data.protection.oc
+                );
+
+                updateProtection(
+                    "prot-ot",
+                    data.protection.ot
+                );
+
+                updateProtection(
+                    "prot-sc",
+                    data.protection.sc
+                );
+
+                updateProtection(
+                    "prot-imb",
+                    data.protection.imb
+                );
             }
         }
+
+
+        // =====================================================
+        // СТАТУС ЗАХИСТУ
+        // =====================================================
 
         function updateProtection(id, isOk) {
-            const el = document.getElementById(id);
-            if(isOk) {
+
+            const el =
+                document.getElementById(id);
+
+            if (isOk) {
+
                 el.innerText = "OK";
-                el.className = "text-turquoise-400 font-semibold";
+
+                el.className =
+                    "text-turquoise-400 font-semibold";
+
             } else {
+
                 el.innerText = "ALARM";
-                el.className = "text-red-500 font-bold";
+
+                el.className =
+                    "text-red-500 font-bold";
             }
         }
 
+
+        // =====================================================
+        // ЧАС ОНОВЛЕННЯ
+        // =====================================================
+
         function updateTime() {
+
             let now = new Date();
-            let timeString = now.toLocaleTimeString('uk-UA');
-            document.getElementById("last-update").innerText = "Оновлено: " + timeString;
+
+            let timeString =
+                now.toLocaleTimeString('uk-UA');
+
+            document.getElementById(
+                "last-update"
+            ).innerText =
+                "Оновлено: " + timeString;
         }
 
-        // Запуск підключення при завантаженні сторінки
-        window.onload = connectMQTT;
+
+        // =====================================================
+        // ЗАПУСК
+        // =====================================================
+
+        window.onload =
+            connectMQTT;
+
     </script>
+
 </body>
 </html>
+```
