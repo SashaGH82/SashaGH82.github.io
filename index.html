@@ -1,380 +1,954 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BMS Dashboard</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        darkbg: '#121316',
-                        cardbg: '#1c1e24',
-                        cardborder: '#2a2d35',
-                        turquoise: {
-                            400: '#2dd4bf',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1724">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>BMS Dashboard — DP04S007</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b12; --panel:#0f1724; --panel-2:#131d2d; --line:#1d2b3f;
+  --txt:#e8eefb; --muted:#7c8ba5;
+  --green:#22e07a; --amber:#ffb545; --cyan:#38d6ff; --purple:#a06bff; --red:#ff5c6c;
+  --r:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:Inter,system-ui,sans-serif;color:var(--txt);
+  background:
+    radial-gradient(900px 520px at 15% -10%, rgba(56,214,255,.10), transparent 60%),
+    radial-gradient(900px 520px at 90% 0%, rgba(160,107,255,.12), transparent 60%),
+    radial-gradient(700px 500px at 50% 120%, rgba(34,224,122,.08), transparent 60%),
+    var(--bg);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1440px;margin:0 auto;padding:18px 18px 40px}
 
-    <!-- Використовуємо надійний CDN jsDelivr -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+header{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:14px 18px;margin-bottom:18px;
+  background:linear-gradient(180deg,rgba(19,29,45,.9),rgba(15,23,36,.7));
+  border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(8px);
+}
+.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#1c2c44,#101827);border:1px solid #26374f;font-size:20px;
+  box-shadow:0 0 22px rgba(56,214,255,.18) inset}
+.title h1{margin:0;font-size:16px;font-weight:800;letter-spacing:.01em}
+.title p{margin:2px 0 0;font-size:11.5px;color:var(--muted);letter-spacing:.06em}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
+  font-size:12px;font-weight:600;border:1px solid var(--line);background:#0d1522;color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.on{color:var(--green);border-color:rgba(34,224,122,.35);background:rgba(34,224,122,.08)}
+.pill.on .dot{background:var(--green);animation:pulse 1.8s infinite}
+.pill.err{color:var(--red);border-color:rgba(255,92,108,.35);background:rgba(255,92,108,.08)}
+.pill.err .dot{background:var(--red)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,224,122,.55)}70%{box-shadow:0 0 0 10px rgba(34,224,122,0)}100%{box-shadow:0 0 0 0 rgba(34,224,122,0)}}
+button{font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:9px 16px;
+  border-radius:10px;border:1px solid #26374f;background:#16202f;color:var(--txt);transition:.18s}
+button:hover{background:#1d2a3d;border-color:#33507a}
+#btnInstall{display:none;background:linear-gradient(145deg,#22b86a,#119c53);border-color:#2fce7f}
+
+.grid-main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1040px){.grid-main{grid-template-columns:1fr}}
+
+.panel{background:linear-gradient(180deg,rgba(19,29,45,.75),rgba(13,21,34,.85));
+  border:1px solid var(--line);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
+.panel::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(500px 240px at 50% 0%,rgba(56,214,255,.06),transparent 70%)}
+.panel h2{margin:0 0 10px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);font-weight:700}
+
+.flow-svg{width:100%;height:auto;display:block;position:relative;z-index:1}
+.flow-mobile{display:none}
+.flow{fill:none;stroke:#1b2942;stroke-width:5;stroke-linecap:round;transition:stroke .4s}
+.flow.active{stroke-dasharray:12 16;animation:dash .9s linear infinite}
+.flow.active.rev{animation-direction:reverse}
+@keyframes dash{to{stroke-dashoffset:-28}}
+.flow.grid.active{stroke:var(--amber);filter:drop-shadow(0 0 7px rgba(255,181,69,.8))}
+.flow.bat.active{stroke:var(--green);filter:drop-shadow(0 0 7px rgba(34,224,122,.8))}
+.flow.house.active{stroke:var(--cyan);filter:drop-shadow(0 0 7px rgba(56,214,255,.8))}
+.node .box{fill:url(#nodeFill);stroke:#22334c;stroke-width:1.6;transition:stroke .35s,filter .35s}
+.node .ico{font-size:26px;text-anchor:middle;dominant-baseline:middle}
+.node .lbl{font-size:11px;font-weight:800;letter-spacing:.14em;text-anchor:middle;fill:#c3d2e8}
+.node .sub{font-size:10.5px;font-weight:700;text-anchor:middle;fill:var(--muted);
+  font-family:'JetBrains Mono',monospace}
+[data-node="grid"].on .box{stroke:var(--amber);filter:drop-shadow(0 0 14px rgba(255,181,69,.55))}
+[data-node="bat"].on  .box{stroke:var(--green);filter:drop-shadow(0 0 14px rgba(34,224,122,.55))}
+[data-node="house"].on .box{stroke:var(--cyan);filter:drop-shadow(0 0 14px rgba(56,214,255,.55))}
+[data-node="inv"].on  .box{stroke:var(--purple);filter:drop-shadow(0 0 18px rgba(160,107,255,.55))}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;padding-left:4px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted)}
+.legend i{width:16px;height:3px;border-radius:2px;display:inline-block}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:560px){.cards{grid-template-columns:1fr}}
+.card{background:linear-gradient(160deg,rgba(24,36,55,.85),rgba(13,21,34,.9));
+  border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:relative;
+  overflow:hidden;transition:.2s}
+.card:hover{border-color:#2a3f5e;transform:translateY(-2px)}
+.card h3{margin:0 0 8px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-weight:700}
+.val{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.val small{font-size:12px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
+.hint{font-size:10.5px;color:var(--muted);margin-top:6px}
+.card.soc{grid-column:span 2;display:flex;align-items:center;gap:18px}
+@media (max-width:560px){.card.soc{grid-column:span 1}}
+.ring-wrap{position:relative;width:118px;height:118px;flex:0 0 auto}
+.ring{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:#182537;stroke-width:11}
+.ring-fg{fill:none;stroke:url(#socGrad);stroke-width:11;stroke-linecap:round;
+  stroke-dasharray:351.86;stroke-dashoffset:351.86;
+  transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1);
+  filter:drop-shadow(0 0 8px rgba(34,224,122,.55))}
+.ring-txt{position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  font-family:'JetBrains Mono',monospace}
+.ring-txt b{font-size:26px;font-weight:600;line-height:1}
+.ring-txt span{font-size:11px;color:var(--muted)}
+
+.cells-box{grid-column:span 2}
+@media (max-width:560px){.cells-box{grid-column:span 1}}
+.cells{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;
+  padding:10px 4px 0;margin-top:6px}
+.cell-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+  min-width:0}
+.bal-dot{width:7px;height:7px;border-radius:50%;background:transparent;margin-bottom:1px;
+  transition:background .3s,box-shadow .3s}
+.cell-item.balancing .bal-dot{background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan),0 0 16px rgba(56,214,255,.6);
+  animation:balPulse 1.4s ease-in-out infinite}
+@keyframes balPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+
+.cell-batt{width:56px;height:92px;display:block;
+  filter:drop-shadow(0 0 5px rgba(34,224,122,.55))
+         drop-shadow(0 0 10px rgba(34,224,122,.25));
+  transition:filter .35s}
+.cell-item.low .cell-batt{filter:drop-shadow(0 0 5px rgba(255,181,69,.55))
+         drop-shadow(0 0 10px rgba(255,181,69,.25))}
+.cell-item.bad .cell-batt{filter:drop-shadow(0 0 8px rgba(255,92,108,.9))
+         drop-shadow(0 0 16px rgba(255,92,108,.5))}
+
+.cell-mv{font-size:11.5px;font-family:'JetBrains Mono',monospace;color:var(--green);
+  font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.cell-mv small{font-size:9px;opacity:.75;margin-left:2px;font-weight:600}
+.cell-n{font-size:10px;color:var(--green);letter-spacing:.1em;font-weight:700}
+.cell-item.low .cell-mv{color:var(--amber);font-weight:800}
+.cell-item.low .cell-n{color:var(--amber)}
+.cell-item.bad .cell-mv{color:var(--red);font-weight:800}
+.cell-item.bad .cell-n{color:var(--red)}
+.bar-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cells-stats{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:6px 4px 0}
+.cells-stats b{font-family:'JetBrains Mono',monospace;color:var(--txt);font-size:12px;font-weight:700;margin-left:2px}
+#balHint{transition:color .3s;font-weight:700}
+
+.state-badge{display:inline-flex;align-items:center;gap:9px;padding:7px 14px;
+  border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--line);
+  background:#0d1522;color:var(--muted);transition:.3s}
+.state-badge.charge{color:var(--green);border-color:rgba(34,224,122,.4);background:rgba(34,224,122,.09)}
+.state-badge.discharge{color:var(--amber);border-color:rgba(255,181,69,.4);background:rgba(255,181,69,.09)}
+.state-badge.grid{color:var(--cyan);border-color:rgba(56,214,255,.4);background:rgba(56,214,255,.09)}
+.state-badge.idle{color:var(--muted)}
+
+.charts-grid{display:grid;gap:14px;margin-top:18px;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.chart-card{background:linear-gradient(160deg,rgba(24,36,55,.85),rgba(13,21,34,.9));
+  border:1px solid var(--line);border-radius:14px;padding:12px 14px 6px}
+.chart-card h3{margin:0 0 8px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
+.chart-card h3 b{font-family:'JetBrains Mono',monospace;color:var(--txt);font-weight:700;
+  letter-spacing:0;font-size:12px}
+.chart-wrap{position:relative;height:190px}
+
+.events-panel{margin-top:18px}
+.events-list{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;
+  gap:6px;padding-right:4px}
+.events-list::-webkit-scrollbar{width:6px}
+.events-list::-webkit-scrollbar-thumb{background:#2a3f5e;border-radius:3px}
+.ev-item{display:grid;grid-template-columns:22px 120px 1fr;gap:10px;align-items:center;
+  padding:7px 10px;border-radius:9px;background:rgba(13,21,34,.7);
+  border-left:3px solid #22334c;font-size:12.5px}
+.ev-item.ev-charge{border-left-color:var(--green)}
+.ev-item.ev-discharge{border-left-color:var(--amber)}
+.ev-item.ev-grid{border-left-color:var(--cyan)}
+.ev-item.ev-protect{border-left-color:var(--red);background:rgba(255,92,108,.06)}
+.ev-item.ev-clear{border-left-color:var(--green);background:rgba(34,224,122,.06)}
+.ev-icon{text-align:center}
+.ev-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.ev-text{color:var(--txt)}
+.ev-empty{text-align:center;color:var(--muted);font-size:12px;padding:24px}
+
+.footer{margin-top:18px;text-align:center;font-size:11px;color:#4a5972;letter-spacing:.05em}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);
+  background:#16202f;border:1px solid #2a3f5e;color:var(--txt);padding:11px 18px;
+  border-radius:12px;font-size:12.5px;font-weight:600;opacity:0;pointer-events:none;
+  transition:.3s;z-index:99;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (min-width:1600px){
+  .wrap{max-width:1880px}.val{font-size:32px}.card{padding:18px 20px}
+  .panel{padding:22px}.chart-wrap{height:260px}
+  .cell-batt{width:74px;height:120px}.cells{gap:20px}
+  .title h1{font-size:20px}.panel h2{font-size:12.5px}
+}
+body.tv-mode{font-size:18px}
+body.tv-mode .wrap{max-width:1920px;padding:26px}
+body.tv-mode .val{font-size:38px}
+body.tv-mode .val small{font-size:16px}
+body.tv-mode .card{padding:22px 26px}
+body.tv-mode .panel{padding:26px}
+body.tv-mode .panel h2{font-size:13px}
+body.tv-mode .card h3{font-size:12px}
+body.tv-mode .chart-wrap{height:340px}
+body.tv-mode .charts-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.tv-mode .cell-batt{width:96px;height:156px}
+body.tv-mode .cell-mv{font-size:14px}
+body.tv-mode .cell-n{font-size:12px}
+body.tv-mode .cells{gap:26px}
+body.tv-mode .cells-stats{font-size:13px;gap:26px}
+body.tv-mode .cells-stats b{font-size:14px}
+body.tv-mode .ev-item{font-size:14px;padding:10px 14px;grid-template-columns:26px 150px 1fr}
+body.tv-mode .title h1{font-size:24px}
+body.tv-mode .logo{width:56px;height:56px;font-size:28px}
+body.tv-mode header{padding:20px 24px}
+@media (max-width:900px){
+  body.tv-mode .charts-grid{grid-template-columns:1fr}
+  body.tv-mode .val{font-size:30px}
+}
+
+@media (max-width:700px){
+  .wrap{padding:10px 10px 30px}
+  header{padding:10px 12px;gap:8px;margin-bottom:12px}
+  .logo{width:36px;height:36px;font-size:18px}
+  .title h1{font-size:14px}.title p{font-size:10px}
+  .pill{font-size:10.5px;padding:6px 10px}
+  button{font-size:11px;padding:7px 11px}
+  .panel{padding:10px}.panel h2{font-size:10px;margin-bottom:6px}
+  .flow-desktop{display:none}.flow-mobile{display:block}
+  .cards{gap:10px}.card{padding:12px 14px}.val{font-size:22px}
+  .cells{gap:8px;padding:8px 2px 0}
+  .cell-batt{width:46px;height:78px}
+  .cell-mv{font-size:10px}.cell-n{font-size:9px}
+  .cells-stats{font-size:10px;gap:12px}.cells-stats b{font-size:11px}
+  #balHint{font-size:10px}
+  .charts-grid{grid-template-columns:1fr;gap:10px;margin-top:12px}
+  .chart-wrap{height:200px}
+  .events-panel{margin-top:12px}
+  .ev-item{grid-template-columns:20px 1fr;font-size:11.5px;padding:6px 8px}
+  .ev-time{display:none}
+}
+@media (max-width:380px){
+  .cell-batt{width:42px;height:72px}
+  .cell-mv{font-size:9.5px}.cells{gap:6px}
+}
+</style>
 </head>
-<body class="bg-darkbg text-zinc-200 font-sans min-h-screen p-4 md:p-8">
+<body>
 
-    <!-- Верхня панель -->
-    <header class="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between border-b border-cardborder pb-4 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-white tracking-wide">BMS Monitor</h1>
-            <p class="text-sm text-zinc-400">Система моніторингу акумуляторного блоку (4S LiFePO4)</p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="battGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8bf76a"/><stop offset="50%" stop-color="#22e07a"/><stop offset="100%" stop-color="#119c53"/>
+    </linearGradient>
+    <linearGradient id="battLowGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd28a"/><stop offset="50%" stop-color="#ffb545"/><stop offset="100%" stop-color="#a86d10"/>
+    </linearGradient>
+    <linearGradient id="battRedGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb3bb"/><stop offset="50%" stop-color="#ff5c6c"/><stop offset="100%" stop-color="#8c1d28"/>
+    </linearGradient>
+    <linearGradient id="socGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38d6ff"/><stop offset="55%" stop-color="#22e07a"/><stop offset="100%" stop-color="#8bf76a"/>
+    </linearGradient>
+    <linearGradient id="nodeFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2739"/><stop offset="100%" stop-color="#101a29"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="logo">🔋</div>
+    <div class="title">
+      <h1>BMS Dashboard · DP04S007</h1>
+      <p>Kepworth JBD BLE · 4S LiFePO₄ · ESP32-C3 → HiveMQ</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill" id="connPill"><span class="dot"></span><span id="connTxt">З'єднання…</span></div>
+    <div class="pill" id="updPill"><span id="updTxt">—</span></div>
+    <button id="btnInstall">⬇ Встановити</button>
+    <button id="btnTV">📺 ТВ</button>
+    <button id="btnDemo">Демо</button>
+  </header>
+
+  <div class="grid-main">
+    <section class="panel">
+      <h2>Схема енергопотоків</h2>
+      <svg class="flow-svg flow-desktop" viewBox="0 0 680 600" xmlns="http://www.w3.org/2000/svg">
+        <path data-flow="grid" class="flow grid" d="M340 108 V 230"/>
+        <path data-flow="bat" class="flow bat" d="M430 280 H 500"/>
+        <path data-flow="house" class="flow house" d="M340 330 V 450"/>
+        <g class="node" data-node="grid">
+          <rect class="box" x="270" y="30" width="140" height="78" rx="18"/>
+          <text class="ico" x="340" y="62">⚡</text><text class="lbl" x="340" y="90">МЕРЕЖА</text>
+        </g>
+        <g class="node" data-node="inv">
+          <rect class="box" x="250" y="230" width="180" height="100" rx="26"/>
+          <text class="ico" x="340" y="266">🔄</text>
+          <text class="lbl" x="340" y="296">ІНВЕРТОР</text>
+          <text class="sub" data-sub="inv" x="340" y="315">—</text>
+        </g>
+        <g class="node" data-node="bat">
+          <rect class="box" x="500" y="225" width="150" height="110" rx="18"/>
+          <text class="ico" x="575" y="262">🔋</text>
+          <text class="lbl" x="575" y="290">АКУМУЛЯТОР</text>
+          <text class="sub" data-sub="bat" x="575" y="310">—</text>
+        </g>
+        <g class="node" data-node="house">
+          <rect class="box" x="260" y="450" width="160" height="90" rx="18"/>
+          <text class="ico" x="340" y="486">🏠</text><text class="lbl" x="340" y="516">БУДИНОК</text>
+        </g>
+      </svg>
+
+      <svg class="flow-svg flow-mobile" viewBox="0 0 380 780" xmlns="http://www.w3.org/2000/svg">
+        <path data-flow="grid" class="flow grid" d="M190 110 V 210"/>
+        <path data-flow="bat" class="flow bat" d="M140 300 L 95 420"/>
+        <path data-flow="house" class="flow house" d="M240 300 L 285 420"/>
+        <g class="node" data-node="grid">
+          <rect class="box" x="115" y="40" width="150" height="70" rx="18"/>
+          <text class="ico" x="190" y="70">⚡</text><text class="lbl" x="190" y="98">МЕРЕЖА</text>
+        </g>
+        <g class="node" data-node="inv">
+          <rect class="box" x="105" y="210" width="170" height="90" rx="22"/>
+          <text class="ico" x="190" y="243">🔄</text>
+          <text class="lbl" x="190" y="278">ІНВЕРТОР</text>
+          <text class="sub" data-sub="inv" x="190" y="296">—</text>
+        </g>
+        <g class="node" data-node="bat">
+          <rect class="box" x="15" y="420" width="160" height="100" rx="16"/>
+          <text class="ico" x="95" y="452">🔋</text>
+          <text class="lbl" x="95" y="485">АКБ</text>
+          <text class="sub" data-sub="bat" x="95" y="503">—</text>
+        </g>
+        <g class="node" data-node="house">
+          <rect class="box" x="205" y="420" width="160" height="100" rx="16"/>
+          <text class="ico" x="285" y="452">🏠</text><text class="lbl" x="285" y="485">БУДИНОК</text>
+        </g>
+      </svg>
+
+      <div class="legend">
+        <span><i style="background:var(--amber)"></i>Мережа</span>
+        <span><i style="background:var(--green)"></i>Акумулятор</span>
+        <span><i style="background:var(--cyan)"></i>Споживання</span>
+      </div>
+    </section>
+
+    <section class="cards">
+      <div class="card soc">
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 140 140">
+            <circle class="ring-bg" cx="70" cy="70" r="56"/>
+            <circle class="ring-fg" id="socRing" cx="70" cy="70" r="56"/>
+          </svg>
+          <div class="ring-txt"><b id="socVal">--</b><span>%</span></div>
         </div>
-        <div class="flex items-center gap-3">
-            <span id="mqtt-status" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-zinc-400 border border-zinc-600">
-                <span class="w-2 h-2 rounded-full bg-zinc-500" id="mqtt-indicator"></span>
-                Очікування з'єднання...
-            </span>
-            <span class="text-xs text-zinc-500" id="last-update">Оновлено: ніколи</span>
+        <div style="flex:1;min-width:0">
+          <div class="state-badge" id="stateBadge"><span class="dot"></span><span id="stateTxt">Очікування</span></div>
+          <div class="val" style="margin-top:10px"><span id="pwrVal">--</span><small>Вт</small></div>
+          <div class="hint" id="pwrHint">потужність</div>
         </div>
-    </header>
+      </div>
 
-    <main class="max-w-7xl mx-auto space-y-6">
+      <div class="card"><h3>Напруга батареї</h3><div class="val"><span id="vVal">--</span><small>В</small></div><div class="hint">4S LiFePO₄</div></div>
+      <div class="card"><h3>Струм</h3><div class="val"><span id="iVal">--</span><small>А</small></div><div class="hint" id="iHint">—</div></div>
+      <div class="card"><h3>Температура</h3><div class="val"><span id="tVal">--</span><small>°C</small></div><div class="hint" id="tHint">NTC-датчик</div></div>
+      <div class="card"><h3>Залишкова ємність</h3><div class="val"><span id="capVal">--</span><small>А·год</small></div><div class="hint" id="capHint">з -- А·год</div></div>
 
-        <!-- Сітка основних показників -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            <!-- Заряд (SoC) -->
-            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Рівень заряду (SoC)</span>
-                <div class="flex items-baseline justify-between mt-2">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-soc">0</span><span class="text-lg text-turquoise-400 font-normal">%</span></span>
-                    <span class="text-xs text-turquoise-400" id="val-current-label">+0.0 A</span>
-                </div>
-                <div class="w-full bg-zinc-800 h-2.5 rounded-full mt-4 overflow-hidden">
-                    <div id="bar-soc" class="bg-turquoise-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <!-- Напруга -->
-            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Загальна напруга</span>
-                <div class="mt-2">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-voltage">0.0</span> <span class="text-lg text-turquoise-400 font-normal">V</span></span>
-                </div>
-                <div class="text-xs text-zinc-400 mt-4 flex justify-between">
-                    <span>Мін: 48.0V</span>
-                    <span>Макс: 56.8V</span>
-                </div>
-            </div>
-
-            <!-- Струм та Потужність -->
-            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Поточна потужність</span>
-                <div class="mt-2">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-power">0.0</span> <span class="text-lg text-turquoise-400 font-normal">W</span></span>
-                </div>
-                <div class="text-xs text-zinc-400 mt-4">
-                    <span>Струм: </span><span class="text-zinc-200" id="val-current-full">0.00 A</span>
-                </div>
-            </div>
-
-            <!-- Температура та Здоров'я -->
-            <div class="bg-cardbg border border-cardborder rounded-xl p-5">
-                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Температура / SoH</span>
-                <div class="mt-2 flex justify-between items-baseline">
-                    <span class="text-3xl font-extrabold text-white"><span id="val-temp-main">0.0</span> <span class="text-lg text-turquoise-400 font-normal">°C</span></span>
-                    <span class="text-sm font-semibold text-turquoise-400">SoH <span id="val-soh">0</span>%</span>
-                </div>
-                <div class="text-xs text-zinc-400 mt-4 flex justify-between">
-                    <span>Датчик 1: <span id="val-temp1">0.0</span>°C</span>
-                    <span>Датчик 2: <span id="val-temp2">0.0</span>°C</span>
-                </div>
-            </div>
+      <div class="card cells-box">
+        <div class="bar-row">
+          <h3 style="margin:0">Напруга комірок</h3>
+          <div class="hint" style="margin:0" id="balHint">⚖ балансування: —</div>
         </div>
-
-        <!-- Покомірні напруги (Cell Voltages) -->
-        <div class="bg-cardbg border border-cardborder rounded-xl p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
-                <div>
-                    <h2 class="text-lg font-bold text-white">Напруга комірок (4S)</h2>
-                    <p class="text-xs text-zinc-400">Різниця напруг (Delta): <span class="text-turquoise-400 font-mono" id="val-delta">0.000 V</span></p>
-                </div>
-                <div class="flex gap-4 text-xs">
-                    <span class="flex items-center gap-1.5 text-zinc-400">
-                        <span class="w-2.5 h-2.5 rounded-sm bg-turquoise-500"></span> Мін: <span id="val-cell-min">0.000</span>V
-                    </span>
-                    <span class="flex items-center gap-1.5 text-zinc-400">
-                        <span class="w-2.5 h-2.5 rounded-sm bg-teal-300"></span> Макс: <span id="val-cell-max">0.000</span>V
-                    </span>
-                </div>
-            </div>
-
-            <!-- Контейнер для генерації комірок через JS -->
-            <div id="cells-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                <!-- Очікування даних... -->
-                <div class="col-span-full text-center text-zinc-500 text-sm">Очікування даних по комірках...</div>
-            </div>
+        <div class="cells-stats">
+          <span>Мін: <b id="minCellVal">--</b></span>
+          <span>Макс: <b id="maxCellVal">--</b></span>
+          <span>Δ: <b id="deltaVal">--</b> мВ</span>
         </div>
+        <div class="cells" id="cells"></div>
+      </div>
 
-        <!-- Нижній блок: Керування та Статус Захисту -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- Панель перемикачів -->
-            <div class="bg-cardbg border border-cardborder rounded-xl p-6">
-                <h2 class="text-lg font-bold text-white mb-4">Панель керування ключами (MOSFET)</h2>
-                <div class="space-y-4">
-                    
-                    <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
-                        <div>
-                            <div class="text-sm font-medium text-white">Канал зарядки (Charge MOSFET)</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="sw-charge" class="sr-only peer" onchange="publishCommand('charge', this.checked)">
-                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
-                        <div>
-                            <div class="text-sm font-medium text-white">Канал розрядки (Discharge MOSFET)</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="sw-discharge" class="sr-only peer" onchange="publishCommand('discharge', this.checked)">
-                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-cardborder">
-                        <div>
-                            <div class="text-sm font-medium text-white">Активний балансир</div>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="sw-balance" class="sr-only peer" onchange="publishCommand('balance', this.checked)">
-                            <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-turquoise-500"></div>
-                        </label>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Статуси систем захисту -->
-            <div class="bg-cardbg border border-cardborder rounded-xl p-6">
-                <h2 class="text-lg font-bold text-white mb-4">Статус систем захисту</h2>
-                <div class="grid grid-cols-2 gap-3 text-xs">
-                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
-                        <span class="text-zinc-400">Over Voltage:</span>
-                        <span id="prot-ov" class="text-turquoise-400 font-semibold">-</span>
-                    </div>
-                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
-                        <span class="text-zinc-400">Under Voltage:</span>
-                        <span id="prot-uv" class="text-turquoise-400 font-semibold">-</span>
-                    </div>
-                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
-                        <span class="text-zinc-400">Over Current:</span>
-                        <span id="prot-oc" class="text-turquoise-400 font-semibold">-</span>
-                    </div>
-                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
-                        <span class="text-zinc-400">Over Temp:</span>
-                        <span id="prot-ot" class="text-turquoise-400 font-semibold">-</span>
-                    </div>
-                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
-                        <span class="text-zinc-400">Short Circuit:</span>
-                        <span id="prot-sc" class="text-turquoise-400 font-semibold">-</span>
-                    </div>
-                    <div class="p-3 bg-zinc-900 border border-cardborder rounded-lg flex items-center justify-between">
-                        <span class="text-zinc-400">Cell Imbalance:</span>
-                        <span id="prot-imb" class="text-turquoise-400 font-semibold">-</span>
-                    </div>
-                </div>
-            </div>
-
+      <div class="card"><h3>MOSFET</h3>
+        <div class="val" style="font-size:15px;line-height:1.7">
+          <div>Заряд: <span id="mosChg" style="color:var(--muted)">—</span></div>
+          <div>Розряд: <span id="mosDis" style="color:var(--muted)">—</span></div>
         </div>
+      </div>
+      <div class="card"><h3>Цикли · Захист</h3>
+        <div class="val" style="font-size:15px;line-height:1.7">
+          <div>Циклів: <b id="cycVal" style="font-family:'JetBrains Mono',monospace">--</b></div>
+          <div>Захист: <b id="protVal" style="font-family:'JetBrains Mono',monospace">--</b></div>
+        </div>
+      </div>
+    </section>
+  </div>
 
-    </main>
+  <section class="charts-grid">
+    <div class="chart-card"><h3>SOC (%) · 24 год <b id="chSocNow">--</b></h3><div class="chart-wrap"><canvas id="chartSoc"></canvas></div></div>
+    <div class="chart-card"><h3>Напруга (В) · 24 год <b id="chVNow">--</b></h3><div class="chart-wrap"><canvas id="chartV"></canvas></div></div>
+    <div class="chart-card"><h3>Струм (А) · 24 год <b id="chINow">--</b></h3><div class="chart-wrap"><canvas id="chartI"></canvas></div></div>
+  </section>
 
-    <!-- Скрипт логіки MQTT -->
-    <script>
-        // ================= НАЛАШТУВАННЯ MQTT =================
-        const MQTT_BROKER = "bde4a54afc814433bdef89862de7a1a3.s1.eu.hivemq.cloud"; 
-        const MQTT_PORT = 8884; // 8000 для Ws, 8884 для безпечного WSS (HiveMQ Cloud)
-        const MQTT_TOPIC_DATA = "bms/data";
-        const MQTT_TOPIC_CMD = "bms/command";
-        const CLIENT_ID = "bms_web_" + Math.random().toString(16).substr(2, 8);
-        
-        let client = new Paho.MQTT.Client(MQTT_BROKER, MQTT_PORT, CLIENT_ID);
+  <section class="panel events-panel">
+    <h2>Журнал подій</h2>
+    <div class="events-list" id="eventsList"></div>
+  </section>
 
-        // Налаштування колбеків
-        client.onConnectionLost = onConnectionLost;
-        client.onMessageArrived = onMessageArrived;
+  <div class="footer">Дані оновлюються з HiveMQ · ESP32-C3 · JBD BLE 0x03 / 0x04</div>
+</div>
 
-        // Опції підключення
-        let options = {
-            timeout: 3,
-            onSuccess: onConnect,
-            onFailure: function (message) {
-                console.log("Помилка підключення: " + message.errorMessage);
-                setTimeout(connectMQTT, 5000); 
-            }, // <-- ОБОВ'ЯЗКОВО МАЄ БУТИ КОМА СУДЬ
-            useSSL: true, // Увімкнення безпечного підключення
-            userName: "Sasha_HMQ",    // Твій логін (з розділу Access Management)
-            password: "dZBd1^&b8n"    // Твій пароль
-        };
+<div class="toast" id="toast"></div>
 
-        function connectMQTT() {
-            console.log("Підключення до " + MQTT_BROKER + "...");
-            client.connect(options);
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+/* ========== КОНФІГУРАЦІЯ ========== */
+const CFG = {
+  url: 'wss://broker.hivemq.com:8884/mqtt',
+  topicData:  'bms/data',
+  topicState: 'bms/state',
+  options: {
+    clientId: 'bms-dash-' + Math.random().toString(16).slice(2, 10),
+    clean: true, reconnectPeriod: 4000, connectTimeout: 8000, keepalive: 30
+  }
+};
+
+const S = {
+  voltage:null, current:null, power:null, soc:null,
+  remaining:null, nominal:null, cycles:null,
+  temps:[], cells:[], chargeMos:null, dischargeMos:null,
+  protection:null, mode:null, ts:0,
+  balanceLow:null, balanceHigh:null, balancing:null
+};
+
+const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+const NUM = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ========== ІСТОРІЯ + ПОДІЇ ========== */
+const HISTORY_HOURS = 24, HISTORY_MIN_GAP = 30000, MAX_POINTS = 3200, MAX_EVENTS = 200;
+const history = { soc:[], voltage:[], current:[] };
+const events = [];
+let lastSaveHist = 0;
+
+function loadStorage(){
+  try{
+    const h = JSON.parse(localStorage.getItem('bms_hist') || '{}');
+    const cut = Date.now() - HISTORY_HOURS*3600*1000;
+    for (const k of ['soc','voltage','current']) history[k] = (h[k] || []).filter(p => p && p.x >= cut);
+    const e = JSON.parse(localStorage.getItem('bms_events') || '[]');
+    events.push(...e.slice(0, MAX_EVENTS));
+  }catch(e){}
+}
+function saveHistory(force = false){
+  const now = Date.now();
+  if (!force && now - lastSaveHist < 10000) return;
+  lastSaveHist = now;
+  try{ localStorage.setItem('bms_hist', JSON.stringify(history)); }catch(e){}
+}
+function saveEvents(){ try{ localStorage.setItem('bms_events', JSON.stringify(events)); }catch(e){} }
+
+function pushHistory(){
+  const now = Date.now(), cut = now - HISTORY_HOURS*3600*1000;
+  const add = (arr, v) => {
+    if (v === null || v === undefined || isNaN(v)) return;
+    const last = arr[arr.length-1];
+    if (last && now - last.x < HISTORY_MIN_GAP) last.y = v;
+    else arr.push({ x: now, y: v });
+    while (arr.length && arr[0].x < cut) arr.shift();
+    if (arr.length > MAX_POINTS) arr.splice(0, arr.length - MAX_POINTS);
+  };
+  add(history.soc, S.soc); add(history.voltage, S.voltage); add(history.current, S.current);
+  saveHistory();
+}
+
+function logEvent(type, text){
+  events.unshift({ t: Date.now(), type, text });
+  if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
+  saveEvents(); renderEvents();
+}
+function renderEvents(){
+  const box = $('eventsList');
+  if (!events.length){ box.innerHTML = '<div class="ev-empty">Подій ще немає</div>'; return; }
+  const icons = { charge:'🔌', discharge:'🔋', grid:'⚡', idle:'⏸', protect:'⚠️', clear:'✅', connect:'🔗', disconnect:'❌', info:'ℹ️', error:'❌' };
+  box.innerHTML = events.slice(0, 100).map(ev => {
+    const t = new Date(ev.t);
+    const time = t.toLocaleString('uk-UA', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const icon = icons[ev.type] || 'ℹ️';
+    return `<div class="ev-item ev-${esc(ev.type)}"><span class="ev-icon">${icon}</span><span class="ev-time">${time}</span><span class="ev-text">${esc(ev.text)}</span></div>`;
+  }).join('');
+}
+
+/* ========== РОЗБІР ========== */
+function pick(o, ...keys){ for (const k of keys) if (o[k] !== undefined && o[k] !== null) return o[k]; return undefined; }
+
+// Надійний парсер JSON: спершу пробуємо звичайний parse, потім автофікс незакавичених hex-значень
+function tryParseJSON(txt){
+  try { return JSON.parse(txt); } catch(e1){}
+  try {
+    // Фікс: "raw_extra_hex": 0000002710267B0000 → : "0000002710267B0000"
+    const fixed = txt.replace(/:\s*([0-9A-Fa-f]*[A-Fa-f][0-9A-Fa-f]*)(?=\s*[,}])/g,
+                              (m, hex) => ': "' + hex + '"');
+    return JSON.parse(fixed);
+  } catch(e2){
+    console.warn('[JSON] auto-fix failed:', e2.message);
+  }
+  return null;
+}
+
+function fromJSON(o){
+  const v = pick(o,'voltage','pack_voltage','packVoltage','v','total_voltage');
+  if (v !== undefined) S.voltage = NUM(+v);
+  const i = pick(o,'current','pack_current','packCurrent','i','amps');
+  if (i !== undefined) S.current = NUM(+i);
+  const p = pick(o,'power','p');
+  if (p !== undefined) S.power = NUM(+p);
+  else if (S.voltage !== null && S.current !== null) S.power = Math.abs(S.voltage*S.current);
+  const soc = pick(o,'soc','SOC','state_of_charge','rsoc','percent');
+  if (soc !== undefined) S.soc = NUM(+soc);
+  const rem = pick(o,'remaining_capacity','remainingCapacity','remaining','cap_remaining');
+  if (rem !== undefined) S.remaining = NUM(+rem);
+  const nom = pick(o,'nominal_capacity','nominalCapacity','nominal','cap_nominal');
+  if (nom !== undefined) S.nominal = NUM(+nom);
+  const cyc = pick(o,'cycles','cycle_count','cycleCount');
+  if (cyc !== undefined) S.cycles = NUM(+cyc);
+
+  const cells = pick(o,'cells','cell_voltages','cellVoltages','voltages');
+  if (Array.isArray(cells)){
+    S.cells = cells.map(x => { const n = +x; return n > 10 ? n/1000 : n; }).filter(n => isFinite(n));
+  } else if (cells && typeof cells === 'object'){
+    S.cells = Object.values(cells).map(x => { const n = +x; return n > 10 ? n/1000 : n; });
+  }
+
+  // + 'temperature1' — ваш формат
+  const temps = pick(o,'temps','temperatures','temperature','temp','temperature1');
+  if (Array.isArray(temps)) S.temps = temps.map(x => +x).filter(isFinite);
+  else if (temps !== undefined && temps !== null) S.temps = [+temps].filter(isFinite);
+
+  // + 'mos_charge', 'mos_discharge' — ваш формат
+  const cMos = pick(o,'chargeMos','charge_mos','chg_mos','mos_charge');
+  if (cMos !== undefined) S.chargeMos = (cMos === true || cMos === 1 || cMos === 'on' || cMos === 'ON' || cMos === 'true');
+  const dMos = pick(o,'dischargeMos','discharge_mos','dsg_mos','mos_discharge');
+  if (dMos !== undefined) S.dischargeMos = (dMos === true || dMos === 1 || dMos === 'on' || dMos === 'ON' || dMos === 'true');
+
+  const prot = pick(o,'protection','protection_mask','protect');
+  if (prot !== undefined) S.protection = prot;
+  const mode = pick(o,'mode','state','inverter_state');
+  if (mode !== undefined) S.mode = String(mode).toLowerCase();
+
+  const balArr = pick(o, 'balancing', 'balance_cells', 'cells_balancing', 'balancing_cells');
+  if (Array.isArray(balArr)){
+    S.balancing = balArr.map(x => (x === true || x === 1 || x === 'on' || x === 'ON'));
+    S.balanceLow = null; S.balanceHigh = null;
+  } else {
+    const balLow = pick(o, 'balance_low', 'balancing_low', 'balanceLow', 'balance_mask_low', 'balance_mask');
+    if (balLow !== undefined) S.balanceLow = Number(balLow);
+    const balHigh = pick(o, 'balance_high', 'balancing_high', 'balanceHigh', 'balance_mask_high');
+    if (balHigh !== undefined) S.balanceHigh = Number(balHigh);
+  }
+
+  S.ts = Date.now();
+  render();
+}
+
+function fromText(txt){
+  let hit = false;
+  const g = (re) => { const m = txt.match(re); return m ? parseFloat(m[1]) : null; };
+  const v = g(/Pack voltage:\s*([\d.]+)\s*V/i); if (v !== null){ S.voltage = v; hit = true; }
+  const i = g(/Current:\s*(-?[\d.]+)\s*A/i); if (i !== null){ S.current = i; hit = true; }
+  const rem = g(/Remaining capacity:\s*([\d.]+)\s*Ah/i); if (rem !== null){ S.remaining = rem; hit = true; }
+  const nom = g(/Nominal capacity:\s*([\d.]+)\s*Ah/i); if (nom !== null){ S.nominal = nom; hit = true; }
+  const soc = g(/SOC:\s*(\d+)\s*%/i); if (soc !== null){ S.soc = soc; hit = true; }
+  const cyc = g(/Cycle count:\s*(\d+)/i); if (cyc !== null){ S.cycles = cyc; hit = true; }
+  const t1 = g(/Temperature 1:\s*(-?[\d.]+)\s*C/i); if (t1 !== null){ S.temps = [t1]; hit = true; }
+  const cells = [...txt.matchAll(/Cell\s+\d+:\s*([\d.]+)\s*V/g)].map(m => parseFloat(m[1]));
+  if (cells.length){ S.cells = cells; hit = true; }
+  const bal = txt.match(/Balancing masks:\s*low\s*=\s*0x([0-9A-Fa-f]+)[,\s]+high\s*=\s*0x([0-9A-Fa-f]+)/i);
+  if (bal){ S.balanceLow = parseInt(bal[1],16); S.balanceHigh = parseInt(bal[2],16); S.balancing = null; hit = true; }
+  if (S.voltage !== null && S.current !== null) S.power = Math.abs(S.voltage*S.current);
+  if (hit){ S.ts = Date.now(); render(); }
+  return hit;
+}
+
+function handleMessage(topic, payload){
+  const txt = payload.toString().trim();
+  if (!txt) return;
+
+  console.log('[MQTT]', topic, txt.slice(0, 300));
+
+  if (topic === CFG.topicState){
+    const m = txt.toLowerCase();
+    if (['grid','battery','charge','discharge','idle'].includes(m)) S.mode = m;
+    render(); return;
+  }
+
+  const obj = tryParseJSON(txt);
+  if (obj !== null){ fromJSON(obj); return; }
+
+  console.log('[MQTT] JSON parse failed, trying text parser...');
+  const ok = fromText(txt);
+  if (!ok){
+    console.warn('[MQTT] Не вдалося розпізнати повідомлення');
+    $('updTxt').textContent = 'помилка парсингу';
+  }
+}
+
+/* ========== РЕНДЕР ========== */
+function fmt(v, d = 2){ return (v === null || v === undefined || isNaN(v)) ? '--' : Number(v).toFixed(d); }
+
+function computeMode(){
+  if (S.mode && ['grid','battery','charge','discharge','idle'].includes(S.mode))
+    return S.mode === 'battery' ? 'discharge' : S.mode;
+  if (S.current !== null){
+    if (S.current > 0.4) return 'charge';
+    if (S.current < -0.4) return 'discharge';
+    return 'grid';
+  }
+  return 'idle';
+}
+
+function isCellBalancing(idx){
+  if (Array.isArray(S.balancing) && S.balancing.length === S.cells.length) return !!S.balancing[idx];
+  if (idx < 8 && S.balanceLow !== null) return !!(S.balanceLow & (1 << idx));
+  if (idx >= 8 && idx < 16 && S.balanceHigh !== null) return !!(S.balanceHigh & (1 << (idx - 8)));
+  return false;
+}
+
+let prevMode = null, prevProtection = null;
+
+function render(){
+  $('vVal').textContent = fmt(S.voltage, 2);
+  $('iVal').textContent = fmt(S.current, 2);
+  $('tVal').textContent = S.temps.length ? fmt(S.temps[0], 1) : '--';
+  $('capVal').textContent = fmt(S.remaining, 2);
+  $('capHint').textContent = 'з ' + fmt(S.nominal, 2) + ' А·год';
+
+  const soc = S.soc !== null ? Math.max(0, Math.min(100, S.soc)) : null;
+  $('socVal').textContent = soc !== null ? Math.round(soc) : '--';
+  const C = 2 * Math.PI * 56;
+  $('socRing').style.strokeDashoffset = soc !== null ? (C * (1 - soc/100)).toFixed(2) : C.toFixed(2);
+
+  const power = S.power !== null ? S.power : (S.voltage && S.current ? Math.abs(S.voltage*S.current) : null);
+  $('pwrVal').textContent = fmt(power, 1);
+
+  $('iHint').textContent = S.current === null ? '—' :
+    S.current > 0.4 ? '↑ заряд' : S.current < -0.4 ? '↓ розряд' : 'стан спокою';
+
+  const mos = (val, el) => {
+    if (val === null){ el.textContent = '—'; el.style.color = 'var(--muted)'; return; }
+    el.textContent = val ? 'УВІМК' : 'ВИМК';
+    el.style.color = val ? 'var(--green)' : 'var(--red)';
+  };
+  mos(S.chargeMos, $('mosChg'));
+  mos(S.dischargeMos, $('mosDis'));
+
+  $('cycVal').textContent = S.cycles !== null ? S.cycles : '--';
+  $('protVal').textContent = S.protection === null ? '--' :
+    (Number(S.protection) === 0 ? 'OK' : '0x' + Number(S.protection).toString(16).toUpperCase());
+  $('protVal').style.color = (S.protection !== null && Number(S.protection) === 0) ? 'var(--green)' : 'var(--muted)';
+
+  renderCells();
+  updateFlow();
+  pushHistory();
+  updateCharts();
+  updateChartLabels();
+
+  const mode = computeMode();
+  if (prevMode !== null && mode !== prevMode){
+    const map = {
+      charge:'Розпочато заряджання АКБ',
+      discharge:'Розпочато розряд АКБ',
+      grid:'Перехід на живлення від мережі',
+      idle:'Перехід у режим очікування'
+    };
+    if (map[mode]) logEvent(mode, map[mode]);
+  }
+  prevMode = mode;
+
+  if (prevProtection !== null && S.protection !== null){
+    const prev = Number(prevProtection), cur = Number(S.protection);
+    if (prev === 0 && cur !== 0) logEvent('protect', 'Спрацював захист: 0x' + cur.toString(16).toUpperCase().padStart(4,'0'));
+    else if (prev !== 0 && cur === 0) logEvent('clear', 'Захист знято');
+  }
+  if (S.protection !== null) prevProtection = S.protection;
+
+  if (S.ts) $('updTxt').textContent = new Date(S.ts).toLocaleTimeString('uk-UA');
+}
+
+function batterySVG(pct, state){
+  const innerTop = 18, innerBottom = 90, innerH = innerBottom - innerTop;
+  const fillH = Math.max(3, innerH * Math.max(0, Math.min(100, pct)) / 100);
+  const fillY = innerBottom - fillH;
+  const grad = state === 'bad' ? 'url(#battRedGrad)' : state === 'low' ? 'url(#battLowGrad)' : 'url(#battGrad)';
+  const stroke = state === 'bad' ? '#ff5c6c' : state === 'low' ? '#ffb545' : '#22e07a';
+  return `<svg viewBox="0 0 60 100" class="cell-batt" preserveAspectRatio="xMidYMid meet">
+    <rect x="22" y="4" width="16" height="12" rx="3" fill="${stroke}"/>
+    <rect x="10" y="14" width="40" height="80" rx="8" fill="#0a121e" stroke="${stroke}" stroke-width="2.5"/>
+    <rect x="14" y="${fillY.toFixed(1)}" width="32" height="${fillH.toFixed(1)}" rx="5" fill="${grad}"/>
+  </svg>`;
+}
+
+function renderCells(){
+  const box = $('cells');
+  if (!S.cells.length){
+    box.innerHTML = '<div class="hint" style="margin:auto">Немає даних про комірки</div>';
+    $('minCellVal').textContent = '--'; $('maxCellVal').textContent = '--';
+    $('deltaVal').textContent = '--'; $('deltaVal').style.color = 'var(--muted)';
+    $('balHint').textContent = '⚖ балансування: —'; $('balHint').style.color = 'var(--muted)';
+    return;
+  }
+  const LO = 3.10, HI = 3.65;
+  const minVal = Math.min(...S.cells), maxVal = Math.max(...S.cells);
+  const delta = Math.round((maxVal - minVal) * 1000);
+  const isDeltaBad = delta >= 100;
+  const minIdx = S.cells.indexOf(minVal);
+  const badIdx = isDeltaBad ? minIdx : -1;
+  const lowIdx = isDeltaBad ? -1 : minIdx;
+
+  $('minCellVal').textContent = minVal.toFixed(3) + ' В (C' + (minIdx+1) + ')';
+  $('maxCellVal').textContent = maxVal.toFixed(3) + ' В (C' + (S.cells.indexOf(maxVal)+1) + ')';
+  $('deltaVal').textContent = delta;
+  $('deltaVal').style.color = isDeltaBad ? 'var(--red)' : (delta > 60 ? 'var(--amber)' : 'var(--green)');
+
+  let anyBal = false;
+  box.innerHTML = S.cells.map((v, idx) => {
+    const pct = ((v - LO) / (HI - LO)) * 100;
+    const state = idx === badIdx ? 'bad' : idx === lowIdx ? 'low' : 'ok';
+    const isBal = isCellBalancing(idx);
+    if (isBal) anyBal = true;
+    const cls = state === 'bad' ? ' bad' : state === 'low' ? ' low' : '';
+    return `<div class="cell-item${cls}${isBal ? ' balancing' : ''}">
+      <span class="bal-dot" title="Балансування"></span>
+      ${batterySVG(pct, state)}
+      <div class="cell-mv">${v.toFixed(3)}<small>В</small></div>
+      <div class="cell-n">C${idx+1}</div>
+    </div>`;
+  }).join('');
+
+  $('balHint').textContent = anyBal ? '⚖ балансування: активне' : '⚖ балансування: не активне';
+  $('balHint').style.color = anyBal ? 'var(--cyan)' : 'var(--muted)';
+}
+
+function setFlowActive(name, on, rev = false){
+  $$(`[data-flow="${name}"]`).forEach(el => { el.classList.toggle('active', on); el.classList.toggle('rev', rev); });
+}
+function setNodeActive(name, on){ $$(`[data-node="${name}"]`).forEach(el => el.classList.toggle('on', on)); }
+function setSub(name, text){ $$(`[data-sub="${name}"]`).forEach(el => el.textContent = text); }
+
+function updateFlow(){
+  ['grid','bat','house'].forEach(n => setFlowActive(n, false));
+  ['grid','inv','bat','house'].forEach(n => setNodeActive(n, false));
+
+  const mode = computeMode();
+  $('stateBadge').className = 'state-badge ' + (mode === 'grid' ? 'grid' : mode);
+  const stxt = $('stateTxt');
+
+  if (mode === 'charge'){
+    setFlowActive('grid', true); setFlowActive('bat', true); setFlowActive('house', true);
+    setNodeActive('grid', true); setNodeActive('inv', true); setNodeActive('bat', true); setNodeActive('house', true);
+    stxt.textContent = 'Заряджання АКБ';
+    setSub('inv','МЕРЕЖА → АКБ'); setSub('bat','↑ ' + fmt(Math.abs(S.current||0),1) + ' А');
+  } else if (mode === 'discharge'){
+    setFlowActive('bat', true, true); setFlowActive('house', true);
+    setNodeActive('bat', true); setNodeActive('inv', true); setNodeActive('house', true);
+    stxt.textContent = 'Розряд АКБ';
+    setSub('inv','АКБ → БУДИНОК'); setSub('bat','↓ ' + fmt(Math.abs(S.current||0),1) + ' А');
+  } else if (mode === 'grid'){
+    setFlowActive('grid', true); setFlowActive('house', true);
+    setNodeActive('grid', true); setNodeActive('inv', true); setNodeActive('house', true);
+    stxt.textContent = 'Від мережі';
+    setSub('inv','МЕРЕЖА'); setSub('bat','—');
+  } else {
+    stxt.textContent = 'Очікування';
+    setSub('inv','—'); setSub('bat','—');
+  }
+  $('pwrHint').textContent = mode === 'charge' ? 'заряджання' : mode === 'discharge' ? 'віддача' : mode === 'grid' ? 'від мережі' : 'потужність';
+}
+
+/* ========== ГРАФІКИ ========== */
+const charts = { soc:null, voltage:null, current:null };
+let lastChartUpdate = 0;
+
+function chartBase(color, yMin, yMax, unit){
+  return {
+    type:'line',
+    data:{ datasets:[{ data:[], borderColor:color, backgroundColor:color.replace(')',' ,.12)'.replace(' ','')).replace('rgb','rgba'),
+      fill:true, tension:0.35, pointRadius:0, borderWidth:2, spanGaps:true }]},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{ intersect:false, mode:'index' },
+      plugins:{ legend:{display:false}, tooltip:{
+        backgroundColor:'rgba(13,21,34,.95)', borderColor:'#2a3f5e', borderWidth:1,
+        titleColor:'#e8eefb', bodyColor:'#e8eefb',
+        callbacks:{
+          title: it => it.length ? new Date(it[0].parsed.x).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '',
+          label: it => `${it.parsed.y.toFixed(2)} ${unit}`
         }
+      }},
+      scales:{
+        x:{ type:'linear', grid:{color:'rgba(29,43,63,.4)'}, ticks:{ color:'#7c8ba5', maxTicksLimit:6, font:{size:10},
+          callback:v=>{const d=new Date(v);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')} } },
+        y:{ min:yMin, max:yMax, grid:{color:'rgba(29,43,63,.4)'}, ticks:{ color:'#7c8ba5', font:{size:10} } }
+      }
+    }
+  };
+}
 
-        function onConnect() {
-            console.log("Успішно підключено до MQTT!");
-            client.subscribe(MQTT_TOPIC_DATA);
-            
-            // Оновлюємо UI статусу підключення
-            const statusEl = document.getElementById("mqtt-status");
-            const indicatorEl = document.getElementById("mqtt-indicator");
-            
-            statusEl.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-950 text-turquoise-400 border border-turquoise-500/30";
-            indicatorEl.className = "w-2 h-2 rounded-full bg-turquoise-400";
-            statusEl.innerHTML = statusEl.innerHTML.replace("Очікування з'єднання...", "Онлайн");
-        }
+function initCharts(){
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+  Chart.defaults.color = '#7c8ba5';
+  charts.soc = new Chart($('chartSoc'), chartBase('rgb(34,224,122)', 0, 100, '%'));
+  charts.voltage = new Chart($('chartV'), chartBase('rgb(56,214,255)', undefined, undefined, 'В'));
+  charts.current = new Chart($('chartI'), chartBase('rgb(255,181,69)', undefined, undefined, 'А'));
+  updateCharts(true);
+}
 
-        function onConnectionLost(responseObject) {
-            if (responseObject.errorCode !== 0) {
-                console.log("Зв'язок втрачено: " + responseObject.errorMessage);
-                
-                // Оновлюємо UI на червоний статус
-                const statusEl = document.getElementById("mqtt-status");
-                const indicatorEl = document.getElementById("mqtt-indicator");
-                
-                statusEl.className = "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-red-950 text-red-400 border border-red-500/30";
-                indicatorEl.className = "w-2 h-2 rounded-full bg-red-400";
-                statusEl.innerHTML = statusEl.innerHTML.replace("Онлайн", "Офлайн (Реконект...)");
-                
-                setTimeout(connectMQTT, 5000);
-            }
-        }
+function updateCharts(force = false){
+  if (!charts.soc) return;
+  const now = Date.now();
+  if (!force && now - lastChartUpdate < 5000) return;
+  lastChartUpdate = now;
+  const tMin = now - HISTORY_HOURS*3600*1000;
+  const apply = (c, arr) => { c.options.scales.x.min = tMin; c.options.scales.x.max = now; c.data.datasets[0].data = arr; c.update('none'); };
+  apply(charts.soc, history.soc); apply(charts.voltage, history.voltage); apply(charts.current, history.current);
+}
 
-        // Обробка отриманих даних
-        function onMessageArrived(message) {
-            try {
-                const data = JSON.parse(message.payloadString);
-                updateDashboard(data);
-                updateTime();
-            } catch(e) {
-                console.log("Помилка парсингу JSON: ", e);
-            }
-        }
+function updateChartLabels(){
+  $('chSocNow').textContent = S.soc !== null ? Math.round(S.soc) + '%' : '--';
+  $('chVNow').textContent = S.voltage !== null ? fmt(S.voltage, 2) + ' В' : '--';
+  $('chINow').textContent = S.current !== null ? fmt(S.current, 2) + ' А' : '--';
+}
 
-        // Відправка команд при кліку на тумблери
-        function publishCommand(mosfet, state) {
-            if(client.isConnected()) {
-                const payload = JSON.stringify({ device: mosfet, state: state });
-                let msg = new Paho.MQTT.Message(payload);
-                msg.destinationName = MQTT_TOPIC_CMD;
-                client.send(msg);
-                console.log("Надіслано команду:", payload);
-            } else {
-                alert("Немає підключення до брокера!");
-            }
-        }
+/* ========== MQTT ========== */
+let client = null, demoTimer = null;
 
-        // ================= ОНОВЛЕННЯ ДАШБОРДА =================
-        function updateDashboard(data) {
-            // Основні показники
-            if(data.soc !== undefined) {
-                document.getElementById("val-soc").innerText = data.soc;
-                document.getElementById("bar-soc").style.width = data.soc + "%";
-            }
-            if(data.voltage !== undefined) document.getElementById("val-voltage").innerText = data.voltage.toFixed(1);
-            if(data.power !== undefined) document.getElementById("val-power").innerText = data.power.toFixed(1);
-            if(data.current !== undefined) {
-                document.getElementById("val-current-full").innerText = data.current.toFixed(2) + " A";
-                let sign = data.current > 0 ? "+" : "";
-                document.getElementById("val-current-label").innerText = sign + data.current.toFixed(1) + " A";
-            }
-            if(data.temp1 !== undefined && data.temp2 !== undefined) {
-                let mainTemp = Math.max(data.temp1, data.temp2);
-                document.getElementById("val-temp-main").innerText = mainTemp.toFixed(1);
-                document.getElementById("val-temp1").innerText = data.temp1.toFixed(1);
-                document.getElementById("val-temp2").innerText = data.temp2.toFixed(1);
-            }
-            if(data.soh !== undefined) document.getElementById("val-soh").innerText = data.soh;
+function setConn(ok, text){
+  $('connPill').className = 'pill ' + (ok ? 'on' : 'err');
+  $('connTxt').textContent = text;
+}
+function toast(msg, ms = 3200){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms);
+}
 
-            // Комірки
-            if(data.cells && Array.isArray(data.cells)) {
-                let min = Math.min(...data.cells);
-                let max = Math.max(...data.cells);
-                let delta = max - min;
-                
-                document.getElementById("val-cell-min").innerText = min.toFixed(3);
-                document.getElementById("val-cell-max").innerText = max.toFixed(3);
-                document.getElementById("val-delta").innerText = delta.toFixed(3) + " V";
+function connect(){
+  if (typeof mqtt === 'undefined'){
+    setConn(false, 'MQTT не завантажено'); return;
+  }
+  setConn(false, "З'єднання…");
+  client = mqtt.connect(CFG.url, CFG.options);
 
-                // Рендер HTML комірок
-                let cellsHtml = '';
-                data.cells.forEach((vol, index) => {
-                    let num = (index + 1).toString().padStart(2, '0');
-                    let isMin = vol === min;
-                    
-                    let bgClass = isMin ? "bg-zinc-900 border-turquoise-500/50" : "bg-zinc-900 border-cardborder";
-                    let titleClass = isMin ? "text-turquoise-400" : "text-zinc-500";
-                    let valClass = isMin ? "text-turquoise-400" : "text-white";
-                    let label = isMin ? `CELL ${num} (MIN)` : `CELL ${num}`;
+  client.on('connect', () => {
+    setConn(true, 'HiveMQ · онлайн');
+    logEvent('connect', 'Підключено до HiveMQ');
+    client.subscribe([CFG.topicData, CFG.topicState], { qos: 0 }, (err) => {
+      if (err) toast('Помилка підписки: ' + err.message);
+      else toast('Підписано на ' + CFG.topicData);
+    });
+    if (demoTimer){ clearInterval(demoTimer); demoTimer = null; }
+  });
+  client.on('message', (t, p) => handleMessage(t, p));
+  client.on('reconnect', () => setConn(false, 'Перепідключення…'));
+  client.on('close', () => { setConn(false, 'Офлайн'); logEvent('disconnect', "З'єднання з HiveMQ втрачено"); });
+  client.on('error', (e) => { setConn(false, 'Помилка'); console.warn('MQTT:', e.message); });
+}
 
-                    cellsHtml += `
-                        <div class="${bgClass} border p-3 rounded-lg text-center relative transition-colors duration-300">
-                            <span class="text-[10px] ${titleClass} font-mono">${label}</span>
-                            <div class="text-sm font-bold ${valClass} font-mono mt-1">${vol.toFixed(3)} V</div>
-                        </div>
-                    `;
-                });
-                document.getElementById("cells-container").innerHTML = cellsHtml;
-            }
+/* ========== ДЕМО ========== */
+const DEMO_PHASES = [
+  { mode:'charge', cur:15.2, soc:99, bal:0x0D, cells:[3.487,3.441,3.482,3.472] },
+  { mode:'charge', cur:24.6, soc:99, bal:0x05, cells:[3.500,3.480,3.495,3.490] },
+  { mode:'grid', cur:0.05, soc:99, bal:0x00, cells:[3.400,3.395,3.402,3.398] },
+  { mode:'discharge', cur:-12.4, soc:96, bal:0x00, cells:[3.250,3.220,3.245,3.235] },
+  { mode:'discharge', cur:-28.7, soc:93, bal:0x00, cells:[3.150,3.030,3.140,3.130] },
+  { mode:'grid', cur:0.02, soc:94, bal:0x09, cells:[3.380,3.375,3.382,3.378] }
+];
 
-            // Перемикачі (Синхронізація з реальним станом)
-            if(data.mosfet) {
-                if(data.mosfet.charge !== undefined) document.getElementById("sw-charge").checked = data.mosfet.charge;
-                if(data.mosfet.discharge !== undefined) document.getElementById("sw-discharge").checked = data.mosfet.discharge;
-                if(data.mosfet.balance !== undefined) document.getElementById("sw-balance").checked = data.mosfet.balance;
-            }
+function startDemo(){
+  if (demoTimer) return;
+  let step = 0;
+  toast('Демо-режим: імітація даних BMS');
+  const tick = () => {
+    const ph = DEMO_PHASES[step % DEMO_PHASES.length]; step++;
+    const noise = k => (Math.random() - 0.5) * k;
+    const base = 13.30 + (ph.soc / 100) * 0.62;
+    S.voltage = +(base + noise(0.03)).toFixed(2);
+    S.current = +(ph.cur + noise(0.8)).toFixed(2);
+    S.power = +(Math.abs(S.voltage * S.current)).toFixed(1);
+    S.soc = Math.max(0, Math.min(100, ph.soc + noise(0.4)));
+    S.nominal = 100;
+    S.remaining = +(S.nominal * S.soc / 100).toFixed(2);
+    S.cycles = 1;
+    S.temps = [29.5 + noise(1.2)];
+    S.cells = (ph.cells || [3.487,3.441,3.482,3.472]).map(v => +(v + noise(0.006)).toFixed(3));
+    S.balanceLow = ph.bal || 0; S.balanceHigh = 0; S.balancing = null;
+    S.chargeMos = true; S.dischargeMos = true; S.protection = 0;
+    S.mode = ph.mode; S.ts = Date.now();
+    render();
+  };
+  tick();
+  demoTimer = setInterval(tick, 4000);
+}
 
-            // Системи захисту
-            if(data.protection) {
-                updateProtection("prot-ov", data.protection.ov);
-                updateProtection("prot-uv", data.protection.uv);
-                updateProtection("prot-oc", data.protection.oc);
-                updateProtection("prot-ot", data.protection.ot);
-                updateProtection("prot-sc", data.protection.sc);
-                updateProtection("prot-imb", data.protection.imb);
-            }
-        }
+/* ========== PWA + TV ========== */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; $('btnInstall').style.display = ''; });
+$('btnInstall').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null; $('btnInstall').style.display = 'none';
+  if (outcome === 'accepted') toast('Додано на головний екран');
+});
+window.addEventListener('appinstalled', () => { $('btnInstall').style.display = 'none'; toast('Застосунок встановлено'); });
 
-        function updateProtection(id, isOk) {
-            const el = document.getElementById(id);
-            if(isOk) {
-                el.innerText = "OK";
-                el.className = "text-turquoise-400 font-semibold";
-            } else {
-                el.innerText = "ALARM";
-                el.className = "text-red-500 font-bold";
-            }
-        }
+$('btnTV').addEventListener('click', async () => {
+  document.body.classList.toggle('tv-mode');
+  const on = document.body.classList.contains('tv-mode');
+  if (on){
+    try { await document.documentElement.requestFullscreen(); } catch(e){}
+    toast('ТВ режим увімкнено');
+  } else {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch(e){}
+    toast('ТВ режим вимкнено');
+  }
+  setTimeout(() => updateCharts(true), 150);
+});
 
-        function updateTime() {
-            let now = new Date();
-            let timeString = now.toLocaleTimeString('uk-UA');
-            document.getElementById("last-update").innerText = "Оновлено: " + timeString;
-        }
+/* ========== СТАРТ ========== */
+$('btnDemo').addEventListener('click', () => {
+  if (client) { try { client.end(true); } catch(e){} }
+  $('connPill').className = 'pill';
+  $('connTxt').textContent = 'Демо-режим';
+  startDemo();
+});
 
-        // Запуск підключення при завантаженні сторінки
-        window.onload = connectMQTT;
-    </script>
+loadStorage();
+renderEvents();
+render();
+initCharts();
+connect();
+
+window.addEventListener('pagehide', () => saveHistory(true));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveHistory(true);
+});
+</script>
 </body>
 </html>
