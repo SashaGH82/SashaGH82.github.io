@@ -420,7 +420,7 @@ body.tv-mode header{padding:20px 24px}
 /* ========== КОНФІГУРАЦІЯ ========== */
 const CFG = {
   url: 'wss://broker.hivemq.com:8884/mqtt',
-  topicData:  'bms/data',
+  topicData:  'bms/data/#',
   topicState: 'bms/state',
   options: {
     clientId: 'bms-dash-' + Math.random().toString(16).slice(2, 10),
